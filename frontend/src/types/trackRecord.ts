@@ -1,11 +1,15 @@
-export type TrackRecordStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+import type { Agency } from './agency';
+
+export type TrackRecordStatus = 'NEW' | 'CONTACTED' | 'POTENTIAL' | 'CLOSED' | 'LOST';
 
 export interface TrackRecord {
-  id: string;
-  title: string;
-  status: TrackRecordStatus;
-  notes?: string;
-  agencyId?: string;
+  agency?: Agency;
+  agencyId: number;
   createdAt: string;
+  customerName: string;
+  expectedRevenue: number;
+  id: number;
+  note?: string | null;
+  status: TrackRecordStatus;
   updatedAt: string;
 }

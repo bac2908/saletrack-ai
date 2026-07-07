@@ -1,12 +1,13 @@
 import { api } from './api';
 import type { Sale } from '../types/sale';
+import type { ListParams, PaginatedResult } from '../types/api';
 
-export type SalePayload = Omit<Sale, 'id' | 'createdAt' | 'updatedAt'>;
+export type SalePayload = Pick<Sale, 'email' | 'name' | 'phone' | 'status'>;
 
 export const salesService = {
-  getAll: () => api.get<Sale[]>('/sales'),
-  getById: (id: string) => api.get<Sale>(`/sales/${id}`),
+  getAll: (params?: ListParams) => api.get<PaginatedResult<Sale>>('/sales', params),
+  getById: (id: number) => api.get<Sale>(`/sales/${id}`),
   create: (payload: SalePayload) => api.post<Sale>('/sales', payload),
-  update: (id: string, payload: Partial<SalePayload>) => api.put<Sale>(`/sales/${id}`, payload),
-  remove: (id: string) => api.delete<void>(`/sales/${id}`),
+  update: (id: number, payload: Partial<SalePayload>) => api.put<Sale>(`/sales/${id}`, payload),
+  remove: (id: number) => api.delete<Sale>(`/sales/${id}`),
 };

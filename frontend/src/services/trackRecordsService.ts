@@ -1,13 +1,17 @@
 import { api } from './api';
 import type { TrackRecord } from '../types/trackRecord';
+import type { ListParams, PaginatedResult } from '../types/api';
 
-export type TrackRecordPayload = Omit<TrackRecord, 'id' | 'createdAt' | 'updatedAt'>;
+export type TrackRecordPayload = Pick<
+  TrackRecord,
+  'agencyId' | 'customerName' | 'expectedRevenue' | 'note' | 'status'
+>;
 
 export const trackRecordsService = {
-  getAll: () => api.get<TrackRecord[]>('/track-records'),
-  getById: (id: string) => api.get<TrackRecord>(`/track-records/${id}`),
+  getAll: (params?: ListParams) => api.get<PaginatedResult<TrackRecord>>('/track-records', params),
+  getById: (id: number) => api.get<TrackRecord>(`/track-records/${id}`),
   create: (payload: TrackRecordPayload) => api.post<TrackRecord>('/track-records', payload),
-  update: (id: string, payload: Partial<TrackRecordPayload>) =>
+  update: (id: number, payload: Partial<TrackRecordPayload>) =>
     api.put<TrackRecord>(`/track-records/${id}`, payload),
-  remove: (id: string) => api.delete<void>(`/track-records/${id}`),
+  remove: (id: number) => api.delete<TrackRecord>(`/track-records/${id}`),
 };

@@ -2,12 +2,9 @@ import {
   Bell,
   Building2,
   Check,
-  ChevronLeft,
-  ChevronRight,
   Download,
   Filter,
   Globe2,
-  MoreVertical,
   Plus,
   Search,
   SortAsc,
@@ -16,119 +13,205 @@ import {
   UserPlus,
   UserRound,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { FormEvent, ReactNode } from 'react';
+import { useEffect, useState } from 'react';
+import ActionButtons from '../components/ui/ActionButtons';
+import Button from '../components/ui/Button';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
+import Input from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
+import PaginationControls from '../components/ui/PaginationControls';
+import Select from '../components/ui/Select';
+import { useAgencies } from '../hooks/useAgencies';
+import { useDashboard } from '../hooks/useDashboard';
+import { agenciesService, type AgencyPayload } from '../services/agenciesService';
+import { salesService } from '../services/salesService';
+import type { Agency } from '../types/agency';
+import type { Sale } from '../types/sale';
 
-const mapImage =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuBaAnhZj5gpy8nyEEluoWkC59mUXI-unSyQUI0AehKE79-aS3Kqy5PHi7oLaHXAS2OXq-n8q5zsqJ-Fxx9-9bCb3T26XcV-WifWccxdowdkjW2KDuaLIkEDus52OLvrgEw9yLmhhwUSIP7Fk47gol0cO32222KzX0QttJWeCkRn_IEPIrtTlKbkYeadEfukkH9guGUG5ueHPC1rpcBfqmqZXY7zkFFWF5qwV_PbnM5REakGazWIXhI1ynPzOTg-aKPbhdzsJG2TuIM';
+const pageSize = 8;
 
-const agencies = [
-  {
-    id: '8492',
-    initials: 'AP',
-    name: 'Apex Partners Global',
-    area: 'North America (East)',
-    sale: 'J. Reynolds',
-    status: 'Active',
-    statusTone: 'mint',
-  },
-  {
-    id: '3310',
-    initials: 'NV',
-    name: 'Nexus Vanguard',
-    area: 'EMEA Central',
-    sale: 'S. Chen',
-    status: 'Under Review',
-    statusTone: 'amber',
-  },
-  {
-    id: '9012',
-    initials: 'OS',
-    name: 'Omni Strategies Ltd.',
-    area: 'APAC (South)',
-    sale: 'Pending',
-    status: 'Active',
-    statusTone: 'mint',
-  },
-  {
-    id: '1109',
-    initials: 'VQ',
-    name: 'Vanguard Quant',
-    area: 'North America (West)',
-    sale: 'M. Davies',
-    status: 'Suspended',
-    statusTone: 'danger',
-  },
-];
+const initialForm: AgencyPayload = {
+  address: '',
+  area: '',
+  name: '',
+  saleId: 0,
+};
 
-function StatusBadge({ status, tone }: { status: string; tone: string }) {
-  const classes =
-    tone === 'mint'
-      ? 'border-accent-mint/30 bg-accent-mint/10 text-accent-mint'
-      : tone === 'amber'
-        ? 'border-accent-amber/30 bg-accent-amber/10 text-accent-amber'
-        : 'border-danger-soft/30 bg-danger-soft/10 text-danger-soft';
+function StatusBadge({ active = true }: { active?: boolean }) {
+  const classes = active
+    ? 'border-accent-mint/30 bg-accent-mint/10 text-accent-mint'
+    : 'border-danger-soft/30 bg-danger-soft/10 text-danger-soft';
 
   return (
     <span className={`inline-flex rounded px-3 py-2 font-mono text-xs uppercase tracking-[0.16em] ${classes}`}>
-      {status}
+      {active ? 'Active' : 'Inactive'}
     </span>
   );
 }
 
 export default function AgenciesPage() {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [coverageCount, setCoverageCount] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+  const [deletingAgency, setDeletingAgency] = useState<Agency | null>(null);
+  const [editingAgency, setEditingAgency] = useState<Agency | null>(null);
+  const [form, setForm] = useState<AgencyPayload>(initialForm);
+  const [page, setPage] = useState(1);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [search, setSearch] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { dashboard, refetch: refetchDashboard } = useDashboard();
+  const { agencies, error, loading, pagination, refetch } = useAgencies({ limit: pageSize, page, search });
+
+  const closedCount = dashboard?.trackRecordsByStatus.CLOSED ?? 0;
+  const performanceScore =
+    dashboard && dashboard.totalTrackRecords > 0 ? ((closedCount / dashboard.totalTrackRecords) * 100).toFixed(1) : '0.0';
+
+  useEffect(() => {
+    salesService.getAll({ limit: 100 }).then((result) => {
+      setSales(result.items);
+      setForm((current) => ({ ...current, saleId: current.saleId || result.items[0]?.id || 0 }));
+    });
+    agenciesService.getAll({ limit: 100 }).then((result) => {
+      setCoverageCount(new Set(result.items.map((agency) => agency.area)).size);
+    });
+  }, []);
+
+  async function refreshCoverage() {
+    const result = await agenciesService.getAll({ limit: 100 });
+    setCoverageCount(new Set(result.items.map((agency) => agency.area)).size);
+  }
+
+  function openCreateAgency() {
+    setEditingAgency(null);
+    setForm({ ...initialForm, saleId: sales[0]?.id ?? 0 });
+    setSubmitError(null);
+    setCreateOpen(true);
+  }
+
+  function openEditAgency(agency: Agency) {
+    setEditingAgency(agency);
+    setForm({
+      address: agency.address,
+      area: agency.area,
+      name: agency.name,
+      saleId: agency.saleId,
+    });
+    setSubmitError(null);
+    setCreateOpen(true);
+  }
+
+  async function handleSubmitAgency(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      if (!form.saleId) {
+        throw new Error('Vui lòng chọn sale phụ trách');
+      }
+
+      if (editingAgency) {
+        await agenciesService.update(editingAgency.id, form);
+      } else {
+        await agenciesService.create(form);
+      }
+
+      setForm({ ...initialForm, saleId: sales[0]?.id ?? 0 });
+      setEditingAgency(null);
+      setCreateOpen(false);
+      setPage(1);
+      await Promise.all([refetch(), refreshCoverage(), refetchDashboard()]);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Không thể lưu đại lý');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDeleteAgency() {
+    if (!deletingAgency) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await agenciesService.remove(deletingAgency.id);
+      setDeletingAgency(null);
+      await Promise.all([refetch(), refreshCoverage(), refetchDashboard()]);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <main className="min-h-screen overflow-y-auto bg-background px-10 py-6">
       <section className="mb-9 flex items-start justify-between gap-8">
         <div>
           <h2 className="font-display text-[38px] font-bold leading-none text-text-strong">Agencies Management</h2>
-          <p className="mt-4 text-lg text-text-muted">Global Partner Network Overview</p>
+          <p className="mt-4 text-lg text-text-muted">Mạng lưới đại lý tại Việt Nam</p>
         </div>
         <div className="flex items-center gap-8">
           <div className="relative hidden w-[400px] xl:block">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
             <input
               className="h-14 w-full rounded border border-surface-line bg-surface-card pl-12 pr-16 text-lg text-text-strong outline-none placeholder:text-text-muted focus:border-accent-mint focus:ring-1 focus:ring-accent-mint"
-              placeholder="Search agencies, regions, or IDs... (Cmd+K)"
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Search agencies, areas, or sale..."
               type="search"
+              value={search}
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 rounded border border-surface-line px-2 py-1 font-mono text-[10px] text-text-muted">
-              Cmd+K
+              Ctrl+K
             </span>
           </div>
           <button className="relative flex h-12 w-12 items-center justify-center border border-surface-line bg-surface-card text-text-muted">
             <Bell className="h-6 w-6" />
             <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-accent-mint" />
           </button>
-          <div className="h-12 w-12 overflow-hidden rounded-full border border-surface-line bg-surface-card-high" />
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-surface-line bg-surface-card-high font-mono text-xs text-text-strong">
+            GS
+          </div>
         </div>
       </section>
 
       <section className="mb-12 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
         <div className="relative h-[170px] overflow-hidden rounded-lg border border-accent-mint bg-surface-card p-8">
           <Building2 className="absolute right-8 top-11 h-14 w-14 text-accent-mint opacity-10" />
-          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Total Active Agencies</p>
+          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Total Agencies</p>
           <div className="mt-7 flex items-baseline gap-3">
-            <span className="font-display text-[56px] font-bold leading-none text-text-strong">1,482</span>
-            <span className="font-mono text-sm text-accent-mint">↑12%</span>
+            <span className="font-display text-[56px] font-bold leading-none text-text-strong">
+              {dashboard?.totalAgencies ?? pagination.total}
+            </span>
+            <span className="font-mono text-sm text-accent-mint">VN</span>
           </div>
         </div>
         <div className="relative h-[170px] overflow-hidden rounded-lg border border-accent-amber bg-surface-card p-8">
           <Globe2 className="absolute right-8 top-9 h-16 w-16 text-accent-amber opacity-10" />
-          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Global Coverage</p>
+          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Vietnam Coverage</p>
           <div className="mt-7 flex items-baseline gap-4">
-            <span className="font-display text-[56px] font-bold leading-none text-text-strong">84</span>
-            <span className="font-mono text-sm text-text-muted">Countries</span>
+            <span className="font-display text-[56px] font-bold leading-none text-text-strong">{coverageCount || 21}</span>
+            <span className="font-mono text-sm text-text-muted">Areas</span>
           </div>
         </div>
         <div className="relative h-[170px] overflow-hidden rounded-lg border border-surface-line bg-surface-card p-8">
           <TrendingUp className="absolute right-8 top-10 h-16 w-16 text-text-muted opacity-10" />
-          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Avg Perf Score</p>
+          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Closed Ratio</p>
           <div className="mt-7 flex items-baseline gap-4">
-            <span className="font-display text-[56px] font-bold leading-none text-text-strong">92.4</span>
-            <span className="font-mono text-sm text-text-muted">/ 100</span>
+            <span className="font-display text-[56px] font-bold leading-none text-text-strong">{performanceScore}</span>
+            <span className="font-mono text-sm text-text-muted">%</span>
           </div>
         </div>
-        <button className="flex h-[170px] flex-col items-center justify-center rounded-lg border border-surface-line bg-surface-card p-8 transition hover:border-accent-mint">
+        <button
+          className="flex h-[170px] flex-col items-center justify-center rounded-lg border border-surface-line bg-surface-card p-8 transition hover:border-accent-mint"
+          onClick={openCreateAgency}
+          type="button"
+        >
           <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-card-high text-text-strong">
             <Plus className="h-8 w-8" />
           </span>
@@ -156,101 +239,102 @@ export default function AgenciesPage() {
             </div>
           </div>
 
-          <table className="w-full border-collapse text-left">
-            <thead className="bg-surface-card-high">
-              <tr className="border-b border-surface-line">
-                <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Agency Name</th>
-                <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Area</th>
-                <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Assigned Sale</th>
-                <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Status</th>
-                <th className="px-8 py-5 text-right font-mono text-sm uppercase tracking-[0.18em] text-text-muted">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {agencies.map((agency, index) => (
-                <tr className={`h-[155px] border-b border-surface-line ${index % 2 ? 'bg-background/20' : ''}`} key={agency.id}>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded bg-surface-card-high font-mono font-bold text-text-strong">
-                        {agency.initials}
-                      </div>
-                      <div>
-                        <p className="max-w-[150px] text-lg leading-7 text-text-strong">{agency.name}</p>
-                        <p className="mt-1 font-mono text-sm text-text-muted">ID: AGY-{agency.id}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-lg leading-7 text-text-muted">{agency.area}</td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full border border-surface-line bg-surface font-mono text-[10px] text-text-muted">
-                        {agency.sale === 'Pending' ? 'ssig' : <UserRound className="h-3.5 w-3.5" />}
-                      </div>
-                      <span className={`text-lg ${agency.sale === 'Pending' ? 'italic text-text-muted' : 'text-text-strong'}`}>
-                        {agency.sale}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <StatusBadge status={agency.status} tone={agency.statusTone} />
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <MoreVertical className="ml-auto h-5 w-5 text-text-muted" />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-[780px] w-full border-collapse text-left">
+              <thead className="bg-surface-card-high">
+                <tr className="border-b border-surface-line">
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Agency Name</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Area</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Assigned Sale</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Tracks</th>
+                  <th className="w-24 px-4 py-5 text-right font-mono text-xs uppercase tracking-[0.12em] text-text-muted">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="flex items-center justify-between bg-surface-low px-6 py-5 font-mono text-sm text-text-muted">
-            <span>Showing 1-10 of 1,482</span>
-            <div className="flex items-center gap-2">
-              <button className="flex h-10 w-10 items-center justify-center rounded border border-surface-line">
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <button className="h-10 w-10 rounded border border-accent-mint bg-accent-mint/10 text-accent-mint">1</button>
-              <button className="h-10 w-10 rounded border border-surface-line">2</button>
-              <button className="h-10 w-10 rounded border border-surface-line">3</button>
-              <span className="px-2">...</span>
-              <button className="flex h-10 w-10 items-center justify-center rounded border border-surface-line">
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td className="px-8 py-10 text-text-muted" colSpan={5}>
+                      Loading agencies...
+                    </td>
+                  </tr>
+                ) : null}
+                {!loading && error ? (
+                  <tr>
+                    <td className="px-8 py-10 text-danger-soft" colSpan={5}>
+                      {error}
+                    </td>
+                  </tr>
+                ) : null}
+                {!loading && !error
+                  ? agencies.map((agency, index) => (
+                      <tr className={`h-[120px] border-b border-surface-line ${index % 2 ? 'bg-background/20' : ''}`} key={agency.id}>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded bg-surface-card-high font-mono font-bold text-text-strong">
+                              {agency.name
+                                .replace('Đại lý ', '')
+                                .split(' ')
+                                .slice(0, 2)
+                                .map((word) => word[0])
+                                .join('')}
+                            </div>
+                            <div>
+                              <p className="max-w-[170px] text-lg leading-7 text-text-strong">{agency.name}</p>
+                              <p className="mt-1 font-mono text-sm text-text-muted">ID: AGY-{agency.id}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 text-lg leading-7 text-text-muted">
+                          <p>{agency.area}</p>
+                          <p className="mt-1 max-w-[170px] text-sm text-text-muted">{agency.address}</p>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-surface-line bg-surface font-mono text-[10px] text-text-muted">
+                              <UserRound className="h-3.5 w-3.5" />
+                            </div>
+                            <span className="text-lg text-text-strong">{agency.sale?.name ?? 'Chưa gán'}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-3">
+                            <StatusBadge />
+                            <span className="font-mono text-sm text-text-muted">{agency._count?.trackRecords ?? 0}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-6 text-right">
+                          <ActionButtons
+                            deleteLabel={`Delete ${agency.name}`}
+                            editLabel={`Edit ${agency.name}`}
+                            onDelete={() => setDeletingAgency(agency)}
+                            onEdit={() => openEditAgency(agency)}
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  : null}
+              </tbody>
+            </table>
           </div>
+
+          <PaginationControls onPageChange={setPage} pagination={pagination} />
         </div>
 
         <aside className="flex flex-col gap-8 xl:col-span-4">
           <section className="rounded-lg border border-surface-line bg-surface-card p-8">
-            <h3 className="font-display text-2xl font-semibold text-text-strong">Geographic Distribution</h3>
-            <div
-              className="relative mt-6 h-[320px] overflow-hidden rounded border border-surface-line bg-cover bg-center opacity-80"
-              style={{ backgroundImage: `url("${mapImage}")` }}
-            >
-              <div className="absolute right-3 top-3 flex flex-col gap-2">
-                <button className="flex h-8 w-8 items-center justify-center border border-surface-line bg-surface-card text-text-strong">
-                  +
-                </button>
-                <button className="flex h-8 w-8 items-center justify-center border border-surface-line bg-surface-card text-text-strong">
-                  -
-                </button>
+            <h3 className="font-display text-2xl font-semibold text-text-strong">Vietnam Distribution</h3>
+            <div className="mt-6 rounded border border-surface-line bg-background/50 p-6">
+              <div className="grid grid-cols-2 gap-3 font-mono text-sm text-text-muted">
+                {['TP.HCM', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng', 'Đồng Nai', 'Bình Dương', 'Khánh Hòa'].map(
+                  (area) => (
+                    <span className="flex items-center gap-2" key={area}>
+                      <i className="h-2.5 w-2.5 rounded-full bg-accent-mint" /> {area}
+                    </span>
+                  ),
+                )}
               </div>
-              <span className="absolute left-[28%] top-[38%] h-4 w-4 rounded-full bg-accent-mint shadow-glow" />
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-3 font-mono text-sm text-text-muted">
-              <span className="flex items-center gap-2">
-                <i className="h-2.5 w-2.5 rounded-full bg-accent-mint" /> North America
-              </span>
-              <span className="flex items-center gap-2">
-                <i className="h-2.5 w-2.5 rounded-full bg-accent-amber" /> EMEA
-              </span>
-              <span className="flex items-center gap-2">
-                <i className="h-2.5 w-2.5 rounded-full bg-surface-line" /> APAC
-              </span>
-              <span className="flex items-center gap-2">
-                <i className="h-2.5 w-2.5 rounded-full bg-surface-card-high" /> LATAM
-              </span>
             </div>
           </section>
 
@@ -263,25 +347,85 @@ export default function AgenciesPage() {
               <ActivityItem
                 icon={<Check className="h-4 w-4" />}
                 tone="mint"
-                text={<><strong>Apex Partners Global</strong> contract renewed.</>}
+                text={<><strong>{agencies[0]?.name ?? 'Đại lý mới'}</strong> đã được cập nhật dữ liệu.</>}
                 time="2 hours ago - by System"
               />
               <ActivityItem
                 icon={<TriangleAlert className="h-4 w-4" />}
                 tone="amber"
-                text={<>Performance alert triggered for <strong>Nexus Vanguard</strong>.</>}
+                text={<>Cần rà soát các track record trạng thái <strong>Lost</strong>.</>}
                 time="5 hours ago - Automated"
               />
               <ActivityItem
                 icon={<UserPlus className="h-4 w-4" />}
                 tone="muted"
-                text={<>New agency onboarded: <strong>Omni Strategies Ltd.</strong></>}
-                time="Yesterday, 14:30 - by M. Davies"
+                text={<>Thêm mới dữ liệu đại lý Việt Nam để demo phân trang.</>}
+                time="Today - by SaleTrack AI"
               />
             </div>
           </section>
         </aside>
       </section>
+
+      <Modal
+        onClose={() => {
+          setCreateOpen(false);
+          setEditingAgency(null);
+        }}
+        open={createOpen}
+        title={editingAgency ? 'Sửa đại lý' : 'Tạo đại lý mới'}
+      >
+        <form className="space-y-4" onSubmit={handleSubmitAgency}>
+          <Input
+            label="Tên đại lý"
+            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            placeholder="Đại lý An Phát"
+            required
+            value={form.name}
+          />
+          <Input
+            label="Địa chỉ"
+            onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
+            placeholder="123 Lê Lợi, Quận 1, TP.HCM"
+            required
+            value={form.address}
+          />
+          <Input
+            label="Khu vực"
+            onChange={(event) => setForm((current) => ({ ...current, area: event.target.value }))}
+            placeholder="TP.HCM"
+            required
+            value={form.area}
+          />
+          <Select
+            label="Sale phụ trách"
+            onChange={(event) => setForm((current) => ({ ...current, saleId: Number(event.target.value) }))}
+            options={sales.map((sale) => ({ label: sale.name, value: String(sale.id) }))}
+            value={String(form.saleId)}
+          />
+          {submitError ? <p className="text-sm text-danger-soft">{submitError}</p> : null}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button onClick={() => setCreateOpen(false)} type="button" variant="secondary">
+              Hủy
+            </Button>
+            <Button disabled={submitting} type="submit">
+              {submitting ? 'Đang lưu...' : editingAgency ? 'Lưu thay đổi' : 'Tạo đại lý'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+      <ConfirmDialog
+        description={
+          deletingAgency
+            ? `Bạn chắc chắn muốn xóa ${deletingAgency.name}? Các track record thuộc đại lý này cũng sẽ bị xóa.`
+            : ''
+        }
+        loading={deleting}
+        onClose={() => setDeletingAgency(null)}
+        onConfirm={handleDeleteAgency}
+        open={Boolean(deletingAgency)}
+        title="Xóa đại lý"
+      />
     </main>
   );
 }
@@ -297,7 +441,12 @@ function ActivityItem({
   time: string;
   tone: 'mint' | 'amber' | 'muted';
 }) {
-  const color = tone === 'mint' ? 'border-accent-mint text-accent-mint' : tone === 'amber' ? 'border-accent-amber text-accent-amber' : 'border-surface-line text-text-muted';
+  const color =
+    tone === 'mint'
+      ? 'border-accent-mint text-accent-mint'
+      : tone === 'amber'
+        ? 'border-accent-amber text-accent-amber'
+        : 'border-surface-line text-text-muted';
 
   return (
     <div className="flex gap-4">

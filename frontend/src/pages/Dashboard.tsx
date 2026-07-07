@@ -1,5 +1,8 @@
 import { ArrowRight, BrainCircuit, Building2, Database, Download, MoreHorizontal, TrendingUp } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useDashboard } from '../hooks/useDashboard';
+import { formatCompactCurrency } from '../utils/formatCompactCurrency';
+import { formatCurrency } from '../utils/formatCurrency';
 
 function MetricCard({
   accent,
@@ -52,7 +55,23 @@ function PipelineRow({
   );
 }
 
+function percent(part: number, total: number) {
+  return total > 0 ? Math.round((part / total) * 100) : 0;
+}
+
 export default function Dashboard() {
+  const { dashboard, error, loading } = useDashboard();
+  const totalTrackRecords = dashboard?.totalTrackRecords ?? 0;
+  const stats = dashboard?.trackRecordsByStatus;
+  const closed = stats?.CLOSED ?? 0;
+  const contacted = stats?.CONTACTED ?? 0;
+  const potential = stats?.POTENTIAL ?? 0;
+  const openPipeline = (stats?.NEW ?? 0) + contacted + potential;
+  const lost = stats?.LOST ?? 0;
+  const closedPercent = percent(closed, totalTrackRecords);
+  const pipelinePercent = percent(openPipeline, totalTrackRecords);
+  const lostPercent = percent(lost, totalTrackRecords);
+
   return (
     <main className="min-h-[calc(100vh-5rem)] overflow-y-auto bg-background px-10 py-12">
       <div className="mx-auto max-w-[1200px]">
@@ -62,11 +81,11 @@ export default function Dashboard() {
               Dashboard Overview
             </h2>
             <p className="mt-6 text-[21px] leading-8 text-text-muted">
-              Real-time telemetry and executive insights for Q3 performance.
+              Real-time overview for Vietnamese sales, agencies, and track records.
             </p>
           </div>
           <button
-            className="inline-flex h-12 items-center gap-4 rounded border border-accent-mint bg-[#070f22] px-8 font-mono text-sm uppercase tracking-[0.18em] text-text-muted transition hover:bg-accent-mint hover:text-[#003824]"
+            className="inline-flex h-12 items-center gap-4 rounded border border-accent-mint bg-surface px-8 font-mono text-sm uppercase tracking-[0.18em] text-text-muted transition hover:bg-accent-mint hover:text-background"
             type="button"
           >
             <Download className="h-5 w-5" />
@@ -79,24 +98,24 @@ export default function Dashboard() {
             accent="border-t-2 border-t-accent-mint"
             icon={<TrendingUp className="h-8 w-8" />}
             label="Active Sales Volume"
-            trend="↑12.5%"
-            value="142"
+            trend={loading ? 'Loading' : 'Vietnam'}
+            value={String(dashboard?.activeSalesCount ?? 0)}
           />
           <MetricCard
             accent="border-t-2 border-t-accent-ice"
             icon={<Building2 className="h-8 w-8 text-accent-ice" />}
             label="Total Agencies Deployed"
-            trend="Stable"
+            trend="Nationwide"
             trendColor="text-text-muted"
-            value="38"
+            value={String(dashboard?.totalAgencies ?? 0)}
           />
           <MetricCard
             accent="border-t-2 border-t-accent-amber"
             icon={<Database className="h-8 w-8 text-accent-amber" />}
             label="Total Track Records"
-            trend="↑4.2%"
+            trend={formatCompactCurrency(dashboard?.totalExpectedRevenue ?? 0)}
             trendColor="text-accent-amber"
-            value="1,024"
+            value={String(totalTrackRecords)}
           />
         </section>
 
@@ -107,16 +126,32 @@ export default function Dashboard() {
                 <h3 className="font-display text-3xl font-semibold text-text-strong">Pipeline Velocity & Status</h3>
                 <MoreHorizontal className="h-6 w-6 text-text-muted" />
               </div>
+              {error ? <p className="mb-6 text-danger-soft">{error}</p> : null}
               <div className="space-y-10">
-                <PipelineRow color="text-accent-mint" label="Execution Phase" value="68% (696 records)" width="68%" />
-                <PipelineRow color="text-accent-ice" label="Review Pending" value="22% (225 records)" width="22%" />
-                <PipelineRow color="text-accent-amber" label="Stalled / Flagged" value="10% (103 records)" width="10%" />
+                <PipelineRow
+                  color="text-accent-mint"
+                  label="Closed Records"
+                  value={`${closedPercent}% (${closed} records)`}
+                  width={`${closedPercent}%`}
+                />
+                <PipelineRow
+                  color="text-accent-ice"
+                  label="Active Pipeline"
+                  value={`${pipelinePercent}% (${openPipeline} records)`}
+                  width={`${pipelinePercent}%`}
+                />
+                <PipelineRow
+                  color="text-accent-amber"
+                  label="Lost / Flagged"
+                  value={`${lostPercent}% (${lost} records)`}
+                  width={`${lostPercent}%`}
+                />
               </div>
 
               <div className="relative mt-10 flex h-40 items-center justify-center overflow-hidden rounded border border-dashed border-surface-line bg-surface-card/30">
                 <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent" />
                 <span className="relative font-mono text-sm tracking-[0.14em] text-text-muted">
-                  [Telemetry Node Active - Data Stream Optimal]
+                  [Vietnam Sales Data Stream - SQLite / Prisma Active]
                 </span>
               </div>
             </section>
@@ -130,24 +165,25 @@ export default function Dashboard() {
               </h3>
               <div className="mt-10 space-y-8 text-lg leading-8 text-text-muted">
                 <p>
-                  Overall system health remains nominal with a distinct upward vector in{' '}
-                  <strong className="font-semibold text-text-strong">Active Sales Volume</strong>, showing a{' '}
-                  <span className="font-mono text-accent-mint">12.5%</span> increase over the previous quarter. Agency
-                  deployment has stabilized at 38 operational nodes, providing a consistent processing grid.
+                  Hệ thống hiện có{' '}
+                  <strong className="font-semibold text-text-strong">{dashboard?.activeSalesCount ?? 0}</strong> sale
+                  đang hoạt động, quản lý{' '}
+                  <strong className="font-semibold text-text-strong">{dashboard?.totalAgencies ?? 0}</strong> đại lý tại
+                  Việt Nam và theo dõi <span className="font-mono text-accent-mint">{totalTrackRecords}</span> track
+                  record.
                 </p>
                 <p>
-                  Analysis of Track Records indicates a high throughput in the Execution Phase (
-                  <span className="font-mono text-text-strong">68%</span>). However, attention is required for the{' '}
-                  <span className="font-mono text-accent-amber">10%</span> flagged operations to prevent bottlenecking in
-                  downstream reporting.
+                  Tổng doanh thu dự kiến đang là{' '}
+                  <span className="font-mono text-text-strong">{formatCurrency(dashboard?.totalExpectedRevenue ?? 0)}</span>.
+                  Tỷ lệ đã chốt hiện đạt <span className="font-mono text-accent-mint">{closedPercent}%</span>, trong khi
+                  nhóm cần theo dõi thêm chiếm <span className="font-mono text-accent-amber">{lostPercent}%</span>.
                 </p>
               </div>
 
               <div className="mt-10 rounded border border-surface-line bg-surface p-5">
                 <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-strong">Recommended Action</p>
                 <p className="mt-4 text-base leading-7 text-text-muted">
-                  Re-allocate processing bandwidth to 'Review Pending' queue to accelerate the 225 delayed records before
-                  end-of-cycle.
+                  Ưu tiên gọi lại các track record trạng thái Contacted/Potential để tăng tỷ lệ chốt trong kỳ demo.
                 </p>
                 <button className="mt-6 inline-flex items-center gap-2 font-mono text-sm uppercase tracking-[0.18em] text-accent-mint">
                   Execute Directive

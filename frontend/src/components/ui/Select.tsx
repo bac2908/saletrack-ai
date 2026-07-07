@@ -13,9 +13,9 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 export default function Select({ className = '', label, options, ...props }: SelectProps) {
   return (
     <label className="block">
-      {label ? <span className="mb-1 block text-sm font-medium text-slate-700">{label}</span> : null}
+      {label ? <span className="mb-1 block text-sm font-medium text-text-muted">{label}</span> : null}
       <select
-        className={`h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500 ${className}`}
+        className={`h-10 w-full rounded-md border border-surface-line bg-background px-3 text-sm text-text-strong outline-none focus:border-accent-mint ${className}`}
         {...props}
       >
         {options.map((option) => (

@@ -6,12 +6,16 @@ Base URL:
 http://localhost:5000
 ```
 
-Note: Actual database responses include `createdAt` and `updatedAt`. Some samples below are shortened to keep the main fields easy to scan.
-
 Start backend:
 
 ```bash
 npm run dev
+```
+
+Seed Vietnamese demo data:
+
+```bash
+npm run prisma:seed
 ```
 
 ## 1. Health Check
@@ -47,56 +51,40 @@ Body:
 
 ```json
 {
-  "name": "Nguyen Van A",
+  "name": "Nguyễn Văn An",
   "phone": "0901234567",
-  "email": "vana@example.com",
+  "email": "nguyenvanan@example.com",
   "status": "ACTIVE"
 }
 ```
 
-Expected response:
-
-```json
-{
-  "success": true,
-  "message": "Sale created successfully",
-  "data": {
-    "id": 1,
-    "name": "Nguyen Van A",
-    "phone": "0901234567",
-    "email": "vana@example.com",
-    "status": "ACTIVE",
-    "agencies": []
-  }
-}
-```
-
-## 3. Get Sales
+## 3. Get Sales With Pagination
 
 Method: `GET`
 
 URL:
 
 ```text
-http://localhost:5000/api/sales
+http://localhost:5000/api/sales?page=1&limit=8&search=Nguyễn
 ```
 
-Expected response:
+Expected shape:
 
 ```json
 {
   "success": true,
   "message": "Sales retrieved successfully",
-  "data": [
-    {
-      "id": 1,
-      "name": "Nguyen Van A",
-      "phone": "0901234567",
-      "email": "vana@example.com",
-      "status": "ACTIVE",
-      "agencies": []
+  "data": {
+    "items": [],
+    "pagination": {
+      "page": 1,
+      "limit": 8,
+      "total": 12,
+      "totalPages": 2,
+      "hasNextPage": true,
+      "hasPreviousPage": false
     }
-  ]
+  }
 }
 ```
 
@@ -114,63 +102,21 @@ Body:
 
 ```json
 {
-  "name": "Dai ly Minh Anh",
-  "address": "123 Cong Hoa, TP.HCM",
+  "name": "Đại lý An Phát",
+  "address": "123 Lê Lợi, Quận 1, TP.HCM",
   "area": "TP.HCM",
   "saleId": 1
 }
 ```
 
-Expected response:
-
-```json
-{
-  "success": true,
-  "message": "Agency created successfully",
-  "data": {
-    "id": 1,
-    "name": "Dai ly Minh Anh",
-    "address": "123 Cong Hoa, TP.HCM",
-    "area": "TP.HCM",
-    "saleId": 1,
-    "sale": {
-      "id": 1,
-      "name": "Nguyen Van A"
-    }
-  }
-}
-```
-
-## 5. Get Agencies
+## 5. Get Agencies With Pagination
 
 Method: `GET`
 
 URL:
 
 ```text
-http://localhost:5000/api/agencies
-```
-
-Expected response:
-
-```json
-{
-  "success": true,
-  "message": "Agencies retrieved successfully",
-  "data": [
-    {
-      "id": 1,
-      "name": "Dai ly Minh Anh",
-      "address": "123 Cong Hoa, TP.HCM",
-      "area": "TP.HCM",
-      "saleId": 1,
-      "sale": {
-        "id": 1,
-        "name": "Nguyen Van A"
-      }
-    }
-  ]
-}
+http://localhost:5000/api/agencies?page=1&limit=8&search=TP.HCM
 ```
 
 ## 6. Create TrackRecord
@@ -187,71 +133,22 @@ Body:
 
 ```json
 {
-  "customerName": "Khach hang ABC",
+  "customerName": "Công ty TNHH Việt Phát",
   "expectedRevenue": 15000000,
   "status": "POTENTIAL",
-  "note": "Khach quan tam, hen goi lai tuan sau",
+  "note": "Khách quan tâm, hẹn gọi lại tuần sau",
   "agencyId": 1
 }
 ```
 
-Expected response:
-
-```json
-{
-  "success": true,
-  "message": "Track record created successfully",
-  "data": {
-    "id": 1,
-    "customerName": "Khach hang ABC",
-    "expectedRevenue": 15000000,
-    "status": "POTENTIAL",
-    "note": "Khach quan tam, hen goi lai tuan sau",
-    "agencyId": 1,
-    "agency": {
-      "id": 1,
-      "sale": {
-        "id": 1,
-        "name": "Nguyen Van A"
-      }
-    }
-  }
-}
-```
-
-## 7. Get TrackRecords
+## 7. Get TrackRecords With Pagination
 
 Method: `GET`
 
 URL:
 
 ```text
-http://localhost:5000/api/track-records
-```
-
-Expected response:
-
-```json
-{
-  "success": true,
-  "message": "Track records retrieved successfully",
-  "data": [
-    {
-      "id": 1,
-      "customerName": "Khach hang ABC",
-      "expectedRevenue": 15000000,
-      "status": "POTENTIAL",
-      "agency": {
-        "id": 1,
-        "name": "Dai ly Minh Anh",
-        "sale": {
-          "id": 1,
-          "name": "Nguyen Van A"
-        }
-      }
-    }
-  ]
-}
+http://localhost:5000/api/track-records?page=1&limit=10&search=Công ty
 ```
 
 ## 8. Dashboard Stats
@@ -264,24 +161,105 @@ URL:
 http://localhost:5000/api/dashboard/stats
 ```
 
-Expected response:
+Expected shape:
 
 ```json
 {
   "success": true,
   "message": "Dashboard stats retrieved successfully",
   "data": {
-    "activeSalesCount": 1,
-    "totalAgencies": 1,
-    "totalTrackRecords": 1,
-    "totalExpectedRevenue": 15000000,
+    "activeSalesCount": 10,
+    "totalAgencies": 42,
+    "totalTrackRecords": 210,
+    "totalExpectedRevenue": 12000000000,
     "trackRecordsByStatus": {
-      "NEW": 0,
-      "CONTACTED": 0,
-      "POTENTIAL": 1,
-      "CLOSED": 0,
-      "LOST": 0
+      "NEW": 42,
+      "CONTACTED": 42,
+      "POTENTIAL": 42,
+      "CLOSED": 42,
+      "LOST": 42
     }
   }
 }
 ```
+
+## 9. Update Sale
+
+Method: `PUT`
+
+URL:
+
+```text
+http://localhost:5000/api/sales/1
+```
+
+Body:
+
+```json
+{
+  "name": "Nguyễn Văn An Updated",
+  "status": "ACTIVE"
+}
+```
+
+## 10. Update Agency
+
+Method: `PUT`
+
+URL:
+
+```text
+http://localhost:5000/api/agencies/1
+```
+
+Body:
+
+```json
+{
+  "name": "Đại lý An Phát Updated",
+  "area": "TP.HCM",
+  "saleId": 1
+}
+```
+
+## 11. Update TrackRecord
+
+Method: `PUT`
+
+URL:
+
+```text
+http://localhost:5000/api/track-records/1
+```
+
+Body:
+
+```json
+{
+  "status": "CLOSED",
+  "expectedRevenue": 25000000,
+  "note": "Đã chốt đơn sau cuộc gọi follow-up"
+}
+```
+
+## 12. Delete Records
+
+TrackRecord:
+
+```text
+DELETE http://localhost:5000/api/track-records/1
+```
+
+Agency:
+
+```text
+DELETE http://localhost:5000/api/agencies/1
+```
+
+Sale:
+
+```text
+DELETE http://localhost:5000/api/sales/1
+```
+
+Note: deleting a Sale also removes its Agencies and related TrackRecords. Deleting an Agency also removes its TrackRecords.

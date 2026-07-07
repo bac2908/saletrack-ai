@@ -1,11 +1,21 @@
-export type SaleStatus = 'NEW' | 'CONTACTED' | 'NEGOTIATING' | 'WON' | 'LOST';
+export type SaleStatus = 'ACTIVE' | 'INACTIVE';
+
+export interface SaleAgencySummary {
+  area: string;
+  id: number;
+  name: string;
+}
 
 export interface Sale {
-  id: string;
-  customerName: string;
-  amount: number;
-  status: SaleStatus;
-  agencyId?: string;
+  _count?: {
+    agencies: number;
+  };
+  agencies?: SaleAgencySummary[];
   createdAt: string;
+  email?: string | null;
+  id: number;
+  name: string;
+  phone?: string | null;
+  status: SaleStatus;
   updatedAt: string;
 }

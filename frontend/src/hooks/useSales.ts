@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import { salesService } from '../services/salesService';
+import type { ListParams, PaginationMeta } from '../types/api';
 import type { Sale } from '../types/sale';
 
-export function useSales() {
+const emptyPagination: PaginationMeta = {
+  hasNextPage: false,
+  hasPreviousPage: false,
+  limit: 10,
+  page: 1,
+  total: 0,
+  totalPages: 1,
+};
+
+export function useSales(params: ListParams = {}) {
   const [sales, setSales] = useState<Sale[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>(emptyPagination);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -11,17 +22,19 @@ export function useSales() {
     try {
       setLoading(true);
       setError(null);
-      setSales(await salesService.getAll());
+      const result = await salesService.getAll(params);
+      setSales(result.items);
+      setPagination(result.pagination);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load sales');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [params.limit, params.page, params.search]);
 
   useEffect(() => {
     void refetch();
   }, [refetch]);
 
-  return { sales, loading, error, refetch };
+  return { error, loading, pagination, refetch, sales };
 }

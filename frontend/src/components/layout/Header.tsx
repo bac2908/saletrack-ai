@@ -1,6 +1,10 @@
-import { Bell, Search } from 'lucide-react';
+import { Bell, Moon, Search, Sun } from 'lucide-react';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function Header() {
+  const { theme, toggleTheme } = useTheme();
+  const ThemeIcon = theme === 'dark' ? Sun : Moon;
+
   return (
     <header className="flex h-20 items-center justify-between border-b border-surface-line bg-surface-card px-4 sm:px-10">
       <div className="relative hidden w-[400px] md:block">
@@ -15,6 +19,14 @@ export default function Header() {
         <h1 className="truncate font-display text-3xl font-semibold text-text-strong">Command Sales</h1>
       </div>
       <div className="flex items-center gap-4">
+        <button
+          className="relative inline-flex h-11 w-11 items-center justify-center rounded border border-transparent text-text-muted transition hover:border-accent-mint hover:text-accent-mint"
+          onClick={toggleTheme}
+          type="button"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <ThemeIcon className="h-5 w-5" />
+        </button>
         <button
           className="relative inline-flex h-11 w-11 items-center justify-center rounded border border-transparent text-text-muted transition hover:border-accent-mint hover:text-accent-mint"
           type="button"

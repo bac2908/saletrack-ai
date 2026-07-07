@@ -1,53 +1,27 @@
-import {
-  BarChart3,
-  ChevronLeft,
-  MoreHorizontal,
-  Plus,
-  Search,
-  TrendingDown,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
-import type { ReactNode } from 'react';
+import { BarChart3, Plus, Search, TrendingDown, TrendingUp, Users } from 'lucide-react';
+import type { FormEvent, ReactNode } from 'react';
+import { useState } from 'react';
+import ActionButtons from '../components/ui/ActionButtons';
+import Button from '../components/ui/Button';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
+import Input from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
+import PaginationControls from '../components/ui/PaginationControls';
+import Select from '../components/ui/Select';
+import { useDashboard } from '../hooks/useDashboard';
+import { useSales } from '../hooks/useSales';
+import { salesService, type SalePayload } from '../services/salesService';
+import type { Sale } from '../types/sale';
+import { formatDate } from '../utils/formatDate';
 
-const representatives = [
-  {
-    avatar: 'https://i.pravatar.cc/80?img=47',
-    id: '#SJ-8492',
-    name: 'Sarah Jenkins',
-    region: 'North America - East',
-    revenue: '$1.4M',
-    status: 'Active',
-    tone: 'mint',
-  },
-  {
-    initials: 'MR',
-    id: '#MR-2104',
-    name: 'Marcus Reyes',
-    region: 'EMEA',
-    revenue: '$890K',
-    status: 'Active',
-    tone: 'mint',
-  },
-  {
-    avatar: 'https://i.pravatar.cc/80?img=12',
-    id: '#DC-5511',
-    name: 'David Chen',
-    region: 'APAC',
-    revenue: '$420K',
-    status: 'Inactive',
-    tone: 'muted',
-  },
-  {
-    initials: 'AL',
-    id: '#AL-9022',
-    name: 'Amina Lodi',
-    region: 'North America - West',
-    revenue: '$2.1M',
-    status: 'On Leave',
-    tone: 'amber',
-  },
-];
+const pageSize = 8;
+
+const initialForm: SalePayload = {
+  email: '',
+  name: '',
+  phone: '',
+  status: 'ACTIVE',
+};
 
 function MetricCard({
   accent,
@@ -81,22 +55,100 @@ function MetricCard({
   );
 }
 
-function StatusBadge({ status, tone }: { status: string; tone: string }) {
+function StatusBadge({ status }: { status: 'ACTIVE' | 'INACTIVE' }) {
   const classes =
-    tone === 'mint'
+    status === 'ACTIVE'
       ? 'border-accent-mint/35 bg-accent-mint/10 text-accent-mint'
-      : tone === 'amber'
-        ? 'border-accent-amber/35 bg-accent-amber/10 text-accent-amber'
-        : 'border-surface-line bg-surface-card-high text-text-muted';
+      : 'border-danger-soft/35 bg-danger-soft/10 text-danger-soft';
 
   return (
     <span className={`inline-flex rounded border px-4 py-2 font-mono text-sm uppercase tracking-[0.2em] ${classes}`}>
-      {status}
+      {status === 'ACTIVE' ? 'Active' : 'Inactive'}
     </span>
   );
 }
 
 export default function SalesPage() {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [form, setForm] = useState<SalePayload>(initialForm);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { dashboard, refetch: refetchDashboard } = useDashboard();
+  const { error, loading, pagination, refetch, sales } = useSales({ limit: pageSize, page, search });
+
+  const closedCount = dashboard?.trackRecordsByStatus.CLOSED ?? 0;
+  const totalTrackRecords = dashboard?.totalTrackRecords ?? 0;
+  const conversionRate = totalTrackRecords > 0 ? `${((closedCount / totalTrackRecords) * 100).toFixed(1)}%` : '0%';
+
+  function openCreateSale() {
+    setEditingSale(null);
+    setForm(initialForm);
+    setSubmitError(null);
+    setCreateOpen(true);
+  }
+
+  function openEditSale(sale: Sale) {
+    setEditingSale(sale);
+    setForm({
+      email: sale.email ?? '',
+      name: sale.name,
+      phone: sale.phone ?? '',
+      status: sale.status,
+    });
+    setSubmitError(null);
+    setCreateOpen(true);
+  }
+
+  async function handleSubmitSale(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const payload = {
+        ...form,
+        email: form.email?.trim() || undefined,
+        phone: form.phone?.trim() || undefined,
+      };
+
+      if (editingSale) {
+        await salesService.update(editingSale.id, payload);
+      } else {
+        await salesService.create(payload);
+      }
+
+      setForm(initialForm);
+      setEditingSale(null);
+      setCreateOpen(false);
+      setPage(1);
+      await Promise.all([refetch(), refetchDashboard()]);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Không thể tạo sale');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDeleteSale() {
+    if (!deletingSale) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await salesService.remove(deletingSale.id);
+      setDeletingSale(null);
+      await Promise.all([refetch(), refetchDashboard()]);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <main className="min-h-screen overflow-y-auto bg-background px-10 py-12">
       <div className="mx-auto max-w-[1200px]">
@@ -104,12 +156,12 @@ export default function SalesPage() {
           <div className="max-w-[860px]">
             <h2 className="font-display text-[58px] font-bold leading-none text-text-strong">Sales Team Management</h2>
             <p className="mt-6 text-[21px] leading-8 text-text-muted">
-              Overview and administration of active personnel, performance metrics, and current lead allocations across
-              the enterprise network.
+              Quản lý đội ngũ sale Việt Nam, số lượng đại lý phụ trách và hiệu suất chốt track record.
             </p>
           </div>
           <button
-            className="inline-flex h-14 shrink-0 items-center justify-center gap-3 rounded border border-accent-mint bg-[#071024] px-8 font-mono text-sm uppercase tracking-[0.18em] text-text-strong transition hover:bg-accent-mint hover:text-background"
+            className="inline-flex h-14 shrink-0 items-center justify-center gap-3 rounded border border-accent-mint bg-surface px-8 font-mono text-sm uppercase tracking-[0.18em] text-text-strong transition hover:bg-accent-mint hover:text-background"
+            onClick={openCreateSale}
             type="button"
           >
             <Plus className="h-5 w-5" />
@@ -122,27 +174,27 @@ export default function SalesPage() {
             accent="border-t-[3px] border-t-accent-mint"
             icon={<Users className="h-8 w-8 text-accent-mint" />}
             label="Total Reps"
-            trend="+12% vs last quarter"
+            trend={`${dashboard?.activeSalesCount ?? 0} active`}
             trendIcon={<TrendingUp className="h-4 w-4" />}
-            value="142"
+            value={String(pagination.total)}
           />
           <MetricCard
             accent="border-t-[3px] border-t-accent-amber"
             icon={<TrendingUp className="h-8 w-8 text-accent-amber" />}
-            label="Active Hot Leads"
-            trend="+5% this week"
+            label="Agencies Managed"
+            trend="Vietnam network"
             trendIcon={<TrendingUp className="h-4 w-4" />}
             trendTone="text-accent-amber"
-            value="847"
+            value={String(dashboard?.totalAgencies ?? 0)}
           />
           <MetricCard
             accent="border-t-[3px] border-t-accent-ice"
             icon={<BarChart3 className="h-8 w-8 text-accent-ice" />}
             label="Conversion Rate"
-            trend="-1.2% this month"
+            trend={`${closedCount} closed records`}
             trendIcon={<TrendingDown className="h-4 w-4" />}
-            trendTone="text-danger-soft"
-            value="24.8%"
+            trendTone="text-accent-ice"
+            value={conversionRate}
           />
         </section>
 
@@ -153,8 +205,13 @@ export default function SalesPage() {
               <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
               <input
                 className="h-14 w-full rounded border border-surface-line bg-background pl-12 pr-4 text-lg text-text-strong outline-none placeholder:text-text-muted focus:border-accent-mint focus:ring-1 focus:ring-accent-mint"
-                placeholder="Search representatives..."
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search Vietnamese sales..."
                 type="search"
+                value={search}
               />
             </label>
           </div>
@@ -163,76 +220,149 @@ export default function SalesPage() {
             <table className="min-w-[960px] w-full border-collapse text-left">
               <thead className="bg-surface-card-high">
                 <tr className="border-b border-surface-line">
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">
-                    Representative
-                  </th>
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Region</th>
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">
-                    YTD Revenue
-                  </th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Representative</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Areas</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Agencies</th>
                   <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Status</th>
-                  <th className="px-8 py-5 text-right font-mono text-sm uppercase tracking-[0.18em] text-text-muted">
-                    Actions
-                  </th>
+                  <th className="px-8 py-5 text-right font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {representatives.map((representative) => (
-                  <tr className="h-24 border-b border-surface-line transition hover:bg-surface-low/70" key={representative.id}>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        {representative.avatar ? (
-                          <img
-                            alt={representative.name}
-                            className="h-12 w-12 rounded-full border border-surface-line object-cover"
-                            src={representative.avatar}
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-surface-line bg-surface-card-high font-mono text-lg text-text-strong">
-                            {representative.initials}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-xl font-medium text-text-strong">{representative.name}</p>
-                          <p className="mt-1 font-mono text-sm text-text-muted">ID: {representative.id}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 text-xl text-text-muted">{representative.region}</td>
-                    <td className="px-8 py-6 font-mono text-lg text-text-strong">{representative.revenue}</td>
-                    <td className="px-8 py-6">
-                      <StatusBadge status={representative.status} tone={representative.tone} />
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <button
-                        className="inline-flex h-9 w-9 items-center justify-center rounded border border-transparent text-text-muted transition hover:border-surface-line hover:text-text-strong"
-                        type="button"
-                      >
-                        <MoreHorizontal className="h-5 w-5" />
-                      </button>
+                {loading ? (
+                  <tr>
+                    <td className="px-8 py-10 text-text-muted" colSpan={5}>
+                      Loading sales...
                     </td>
                   </tr>
-                ))}
+                ) : null}
+                {!loading && error ? (
+                  <tr>
+                    <td className="px-8 py-10 text-danger-soft" colSpan={5}>
+                      {error}
+                    </td>
+                  </tr>
+                ) : null}
+                {!loading && !error && sales.length === 0 ? (
+                  <tr>
+                    <td className="px-8 py-10 text-text-muted" colSpan={5}>
+                      Không có sale phù hợp.
+                    </td>
+                  </tr>
+                ) : null}
+                {!loading && !error
+                  ? sales.map((sale) => {
+                      const areas = Array.from(new Set(sale.agencies?.map((agency) => agency.area) ?? []));
+                      const initials = sale.name
+                        .split(' ')
+                        .slice(-2)
+                        .map((part) => part[0])
+                        .join('');
+
+                      return (
+                        <tr className="h-24 border-b border-surface-line transition hover:bg-surface-low/70" key={sale.id}>
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-surface-line bg-surface-card-high font-mono text-lg text-text-strong">
+                                {initials}
+                              </div>
+                              <div>
+                                <p className="text-xl font-medium text-text-strong">{sale.name}</p>
+                                <p className="mt-1 font-mono text-sm text-text-muted">
+                                  {sale.phone ?? 'Chưa có SĐT'} - {formatDate(sale.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-8 py-6 text-lg leading-7 text-text-muted">
+                            {areas.slice(0, 3).join(', ') || 'Chưa gán đại lý'}
+                          </td>
+                          <td className="px-8 py-6 font-mono text-lg text-text-strong">
+                            {sale._count?.agencies ?? sale.agencies?.length ?? 0}
+                          </td>
+                          <td className="px-8 py-6">
+                            <StatusBadge status={sale.status} />
+                          </td>
+                          <td className="px-8 py-6 text-right">
+                            <ActionButtons
+                              deleteLabel={`Delete ${sale.name}`}
+                              editLabel={`Edit ${sale.name}`}
+                              onDelete={() => setDeletingSale(sale)}
+                              onEdit={() => openEditSale(sale)}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })
+                  : null}
               </tbody>
             </table>
           </div>
 
-          <div className="flex flex-col gap-4 bg-surface-low px-6 py-5 font-mono text-sm text-text-muted sm:flex-row sm:items-center sm:justify-between">
-            <span>Showing 1 to 4 of 142 entries</span>
-            <div className="flex items-center gap-3">
-              <button className="inline-flex h-10 items-center gap-2 rounded border border-surface-line px-4 text-text-muted opacity-60">
-                <ChevronLeft className="h-4 w-4" />
-                Prev
-              </button>
-              <button className="h-10 w-10 rounded border border-surface-line bg-surface-card-high text-text-strong">1</button>
-              <button className="h-10 w-10 rounded border border-transparent text-text-muted">2</button>
-              <button className="h-10 w-10 rounded border border-transparent text-text-muted">3</button>
-              <span className="px-2">...</span>
-              <button className="h-10 rounded border border-surface-line px-5 text-text-strong">Next</button>
-            </div>
-          </div>
+          <PaginationControls onPageChange={setPage} pagination={pagination} />
         </section>
       </div>
+
+      <Modal
+        onClose={() => {
+          setCreateOpen(false);
+          setEditingSale(null);
+        }}
+        open={createOpen}
+        title={editingSale ? 'Sửa Sale' : 'Tạo Sale mới'}
+      >
+        <form className="space-y-4" onSubmit={handleSubmitSale}>
+          <Input
+            label="Tên sale"
+            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            placeholder="Nguyễn Văn An"
+            required
+            value={form.name}
+          />
+          <Input
+            label="Số điện thoại"
+            onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+            placeholder="0901234567"
+            value={form.phone ?? ''}
+          />
+          <Input
+            label="Email"
+            onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+            placeholder="sale@example.com"
+            type="email"
+            value={form.email ?? ''}
+          />
+          <Select
+            label="Trạng thái"
+            onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as SalePayload['status'] }))}
+            options={[
+              { label: 'Đang hoạt động', value: 'ACTIVE' },
+              { label: 'Tạm ngưng', value: 'INACTIVE' },
+            ]}
+            value={form.status}
+          />
+          {submitError ? <p className="text-sm text-danger-soft">{submitError}</p> : null}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button onClick={() => setCreateOpen(false)} type="button" variant="secondary">
+              Hủy
+            </Button>
+            <Button disabled={submitting} type="submit">
+              {submitting ? 'Đang lưu...' : editingSale ? 'Lưu thay đổi' : 'Tạo Sale'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+      <ConfirmDialog
+        description={
+          deletingSale
+            ? `Bạn chắc chắn muốn xóa ${deletingSale.name}? Các đại lý và track record liên quan cũng sẽ bị xóa.`
+            : ''
+        }
+        loading={deleting}
+        onClose={() => setDeletingSale(null)}
+        onConfirm={handleDeleteSale}
+        open={Boolean(deletingSale)}
+        title="Xóa Sale"
+      />
     </main>
   );
 }

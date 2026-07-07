@@ -7,6 +7,9 @@ export interface AgencySale {
 }
 
 export interface Agency {
+  _count?: {
+    trackRecords: number;
+  };
   id: number;
   name: string;
   address: string;
