@@ -1,6 +1,7 @@
 import { BarChart3, Plus, Search, TrendingDown, TrendingUp, Users } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ActionButtons from '../components/ui/ActionButtons';
 import Button from '../components/ui/Button';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -8,6 +9,7 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import PaginationControls from '../components/ui/PaginationControls';
 import Select from '../components/ui/Select';
+import ThemeToggle from '../components/ui/ThemeToggle';
 import { useDashboard } from '../hooks/useDashboard';
 import { useSales } from '../hooks/useSales';
 import { salesService, type SalePayload } from '../services/salesService';
@@ -41,7 +43,7 @@ function MetricCard({
   value: string;
 }) {
   return (
-    <section className={`relative h-[220px] overflow-hidden bg-surface-card p-8 shadow-[0_28px_80px_rgba(0,0,0,0.18)] ${accent}`}>
+    <section className={`relative h-[220px] overflow-hidden bg-surface-card p-8 shadow-panel ${accent}`}>
       <div className="absolute right-8 top-9 opacity-90">{icon}</div>
       <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">{label}</p>
       <div className="mt-10">
@@ -63,19 +65,21 @@ function StatusBadge({ status }: { status: 'ACTIVE' | 'INACTIVE' }) {
 
   return (
     <span className={`inline-flex rounded border px-4 py-2 font-mono text-sm uppercase tracking-[0.2em] ${classes}`}>
-      {status === 'ACTIVE' ? 'Active' : 'Inactive'}
+      {status === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm ngưng'}
     </span>
   );
 }
 
 export default function SalesPage() {
+  const [searchParams] = useSearchParams();
+  const searchFromUrl = searchParams.get('search') ?? '';
   const [createOpen, setCreateOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [form, setForm] = useState<SalePayload>(initialForm);
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchFromUrl);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { dashboard, refetch: refetchDashboard } = useDashboard();
@@ -84,6 +88,11 @@ export default function SalesPage() {
   const closedCount = dashboard?.trackRecordsByStatus.CLOSED ?? 0;
   const totalTrackRecords = dashboard?.totalTrackRecords ?? 0;
   const conversionRate = totalTrackRecords > 0 ? `${((closedCount / totalTrackRecords) * 100).toFixed(1)}%` : '0%';
+
+  useEffect(() => {
+    setSearch(searchFromUrl);
+    setPage(1);
+  }, [searchFromUrl]);
 
   function openCreateSale() {
     setEditingSale(null);
@@ -154,35 +163,38 @@ export default function SalesPage() {
       <div className="mx-auto max-w-[1200px]">
         <section className="mb-9 flex flex-col gap-8 border-b border-surface-line pb-9 xl:flex-row xl:items-center xl:justify-between">
           <div className="max-w-[860px]">
-            <h2 className="font-display text-[58px] font-bold leading-none text-text-strong">Sales Team Management</h2>
+            <h2 className="font-display text-[58px] font-bold leading-none text-text-strong">Quản lý đội ngũ Sale</h2>
             <p className="mt-6 text-[21px] leading-8 text-text-muted">
               Quản lý đội ngũ sale Việt Nam, số lượng đại lý phụ trách và hiệu suất chốt track record.
             </p>
           </div>
-          <button
-            className="inline-flex h-14 shrink-0 items-center justify-center gap-3 rounded border border-accent-mint bg-surface px-8 font-mono text-sm uppercase tracking-[0.18em] text-text-strong transition hover:bg-accent-mint hover:text-background"
-            onClick={openCreateSale}
-            type="button"
-          >
-            <Plus className="h-5 w-5" />
-            Create Sale
-          </button>
+          <div className="flex flex-wrap items-center gap-4">
+            <ThemeToggle />
+            <button
+              className="inline-flex h-14 shrink-0 items-center justify-center gap-3 rounded border border-accent-mint bg-surface px-8 font-mono text-sm uppercase tracking-[0.18em] text-text-strong transition hover:bg-accent-mint hover:text-background"
+              onClick={openCreateSale}
+              type="button"
+            >
+              <Plus className="h-5 w-5" />
+              Tạo Sale
+            </button>
+          </div>
         </section>
 
         <section className="mb-14 grid gap-8 xl:grid-cols-3">
           <MetricCard
             accent="border-t-[3px] border-t-accent-mint"
             icon={<Users className="h-8 w-8 text-accent-mint" />}
-            label="Total Reps"
-            trend={`${dashboard?.activeSalesCount ?? 0} active`}
+            label="Tổng Sale"
+            trend={`${dashboard?.activeSalesCount ?? 0} đang hoạt động`}
             trendIcon={<TrendingUp className="h-4 w-4" />}
             value={String(pagination.total)}
           />
           <MetricCard
             accent="border-t-[3px] border-t-accent-amber"
             icon={<TrendingUp className="h-8 w-8 text-accent-amber" />}
-            label="Agencies Managed"
-            trend="Vietnam network"
+            label="Đại lý phụ trách"
+            trend="Mạng lưới Việt Nam"
             trendIcon={<TrendingUp className="h-4 w-4" />}
             trendTone="text-accent-amber"
             value={String(dashboard?.totalAgencies ?? 0)}
@@ -190,8 +202,8 @@ export default function SalesPage() {
           <MetricCard
             accent="border-t-[3px] border-t-accent-ice"
             icon={<BarChart3 className="h-8 w-8 text-accent-ice" />}
-            label="Conversion Rate"
-            trend={`${closedCount} closed records`}
+            label="Tỷ lệ chốt"
+            trend={`${closedCount} track đã chốt`}
             trendIcon={<TrendingDown className="h-4 w-4" />}
             trendTone="text-accent-ice"
             value={conversionRate}
@@ -200,7 +212,7 @@ export default function SalesPage() {
 
         <section className="overflow-hidden rounded-lg border border-surface-line bg-surface-card">
           <div className="flex flex-col gap-6 border-b border-surface-line p-8 xl:flex-row xl:items-center xl:justify-between">
-            <h3 className="font-display text-3xl font-semibold text-text-strong">Personnel Directory</h3>
+            <h3 className="font-display text-3xl font-semibold text-text-strong">Danh sách Sale</h3>
             <label className="relative block w-full max-w-[360px]">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
               <input
@@ -209,7 +221,7 @@ export default function SalesPage() {
                   setSearch(event.target.value);
                   setPage(1);
                 }}
-                placeholder="Search Vietnamese sales..."
+                placeholder="Tìm Sale theo tên, SĐT..."
                 type="search"
                 value={search}
               />
@@ -220,18 +232,18 @@ export default function SalesPage() {
             <table className="min-w-[960px] w-full border-collapse text-left">
               <thead className="bg-surface-card-high">
                 <tr className="border-b border-surface-line">
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Representative</th>
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Areas</th>
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Agencies</th>
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Status</th>
-                  <th className="px-8 py-5 text-right font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Actions</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Sale</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Khu vực</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Đại lý</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Trạng thái</th>
+                  <th className="px-8 py-5 text-right font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
                     <td className="px-8 py-10 text-text-muted" colSpan={5}>
-                      Loading sales...
+                      Đang tải danh sách Sale...
                     </td>
                   </tr>
                 ) : null}
@@ -284,8 +296,8 @@ export default function SalesPage() {
                           </td>
                           <td className="px-8 py-6 text-right">
                             <ActionButtons
-                              deleteLabel={`Delete ${sale.name}`}
-                              editLabel={`Edit ${sale.name}`}
+                              deleteLabel={`Xóa ${sale.name}`}
+                              editLabel={`Chỉnh sửa ${sale.name}`}
                               onDelete={() => setDeletingSale(sale)}
                               onEdit={() => openEditSale(sale)}
                             />

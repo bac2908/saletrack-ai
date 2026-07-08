@@ -1,12 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { CircleHelp, Moon, Settings, Sun } from 'lucide-react';
+import { CircleHelp, Settings } from 'lucide-react';
 import { MENU_ITEMS } from '../../constants/menu';
-import { useTheme } from '../../hooks/useTheme';
+import ThemeToggle from '../ui/ThemeToggle';
 
 export default function Sidebar() {
-  const { theme, toggleTheme } = useTheme();
-  const ThemeIcon = theme === 'dark' ? Sun : Moon;
-
   return (
     <aside className="hidden min-h-screen w-80 shrink-0 flex-col border-r border-surface-line bg-surface-low lg:flex">
       <div className="border-b border-surface-line px-8 py-8">
@@ -18,10 +15,10 @@ export default function Sidebar() {
           />
           <div>
             <span className="block font-display text-3xl font-semibold leading-none text-text-strong">
-              Global Sales
+              SaleTrack AI
             </span>
             <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
-              Enterprise Division
+              Quản lý Sale & Đại lý
             </span>
           </div>
         </div>
@@ -49,21 +46,14 @@ export default function Sidebar() {
         })}
       </nav>
       <div className="mt-auto space-y-1 border-t border-surface-line py-6">
-        <button
-          className="flex w-full items-center gap-5 px-8 py-4 font-mono text-sm uppercase tracking-[0.14em] text-text-muted transition hover:bg-surface-card hover:text-text-strong"
-          onClick={toggleTheme}
-          type="button"
-        >
-          <ThemeIcon className="h-6 w-6" />
-          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-        </button>
+        <ThemeToggle showLabel />
         <button className="flex w-full items-center gap-5 px-8 py-4 font-mono text-sm uppercase tracking-[0.14em] text-text-muted transition hover:bg-surface-card hover:text-text-strong">
           <Settings className="h-6 w-6" />
-          Settings
+          Cài đặt
         </button>
         <button className="flex w-full items-center gap-5 px-8 py-4 font-mono text-sm uppercase tracking-[0.14em] text-text-muted transition hover:bg-surface-card hover:text-text-strong">
           <CircleHelp className="h-6 w-6" />
-          Support
+          Hỗ trợ
         </button>
       </div>
     </aside>

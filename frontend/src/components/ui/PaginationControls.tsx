@@ -18,7 +18,7 @@ export default function PaginationControls({ onPageChange, pagination }: Paginat
   return (
     <div className="flex flex-col gap-4 bg-surface-low px-6 py-5 font-mono text-sm text-text-muted sm:flex-row sm:items-center sm:justify-between">
       <span>
-        Showing page {pagination.page} of {pagination.totalPages} - {pagination.total} records
+        Trang {pagination.page}/{pagination.totalPages} - {pagination.total} bản ghi
       </span>
       <div className="flex items-center gap-2">
         <button

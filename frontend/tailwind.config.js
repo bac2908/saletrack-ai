@@ -24,8 +24,8 @@ export default {
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       boxShadow: {
-        glow: '0 0 20px rgba(78, 222, 163, 0.18)',
-        panel: '0 24px 80px rgba(0, 15, 33, 0.45)',
+        glow: '0 0 20px rgb(var(--color-accent-mint) / 0.18)',
+        panel: '0 28px 80px rgb(var(--color-shadow-panel) / 0.16)',
       },
     },
   },

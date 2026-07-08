@@ -29,7 +29,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const body = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
-    throw new Error(body?.message ?? 'Request failed');
+    throw new Error(body?.message ?? 'Yêu cầu thất bại');
   }
 
   return body?.data ?? body;

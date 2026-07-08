@@ -1,9 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi" class="theme-dark" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SaleTrackAI</title>
+    <meta name="color-scheme" content="dark light" />
+    <title>SaleTrack AI</title>
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('saletrack-theme');
+          var nextTheme = theme === 'light' || theme === 'dark' ? theme : 'dark';
+          document.documentElement.classList.remove('theme-light', 'theme-dark');
+          document.documentElement.classList.add('theme-' + nextTheme);
+          document.documentElement.dataset.theme = nextTheme;
+        } catch (error) {
+          document.documentElement.classList.add('theme-dark');
+          document.documentElement.dataset.theme = 'dark';
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

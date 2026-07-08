@@ -19,6 +19,7 @@
   --color-accent-amber: 255 185 95;
   --color-accent-ice: 190 198 224;
   --color-danger-soft: 255 180 171;
+  --color-shadow-panel: 0 0 0;
 }
 
 .theme-light {
@@ -35,6 +36,7 @@
   --color-accent-amber: 185 111 20;
   --color-accent-ice: 88 101 126;
   --color-danger-soft: 190 65 55;
+  --color-shadow-panel: 82 99 124;
 }
 
 html {

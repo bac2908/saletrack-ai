@@ -1,6 +1,7 @@
 import { Download, Filter, Plus, Search, TrendingUp } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ActionButtons from '../components/ui/ActionButtons';
 import Button from '../components/ui/Button';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -9,6 +10,7 @@ import Modal from '../components/ui/Modal';
 import PaginationControls from '../components/ui/PaginationControls';
 import Select from '../components/ui/Select';
 import Textarea from '../components/ui/Textarea';
+import ThemeToggle from '../components/ui/ThemeToggle';
 import { useDashboard } from '../hooks/useDashboard';
 import { useTrackRecords } from '../hooks/useTrackRecords';
 import { agenciesService } from '../services/agenciesService';
@@ -30,11 +32,11 @@ const initialForm: TrackRecordPayload = {
 };
 
 const statusLabels: Record<TrackRecordStatus, string> = {
-  CLOSED: 'Closed',
-  CONTACTED: 'Contacted',
-  LOST: 'Lost',
-  NEW: 'New',
-  POTENTIAL: 'Potential',
+  CLOSED: 'Đã chốt',
+  CONTACTED: 'Đã liên hệ',
+  LOST: 'Thất bại',
+  NEW: 'Mới',
+  POTENTIAL: 'Tiềm năng',
 };
 
 function PipelineLegend({ color, label }: { color: string; label: ReactNode }) {
@@ -68,6 +70,10 @@ function percent(part: number, total: number) {
 }
 
 export default function TrackRecordsPage() {
+  const [searchParams] = useSearchParams();
+  const searchFromUrl = searchParams.get('search') ?? '';
+  const agencyIdFromUrl = Number(searchParams.get('agencyId') ?? 0);
+  const shouldOpenCreate = searchParams.get('create') === '1';
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -75,7 +81,7 @@ export default function TrackRecordsPage() {
   const [editingRecord, setEditingRecord] = useState<TrackRecord | null>(null);
   const [form, setForm] = useState<TrackRecordPayload>(initialForm);
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchFromUrl);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { dashboard, refetch: refetchDashboard } = useDashboard();
@@ -91,6 +97,11 @@ export default function TrackRecordsPage() {
   const leadPercent = Math.max(0, 100 - closedPercent - negotiationPercent);
   const activeDeals = totalRecords - closed - (stats?.LOST ?? 0);
 
+  useEffect(() => {
+    setSearch(searchFromUrl);
+    setPage(1);
+  }, [searchFromUrl]);
+
   const agencyOptions = useMemo(
     () => agencies.map((agency) => ({ label: `${agency.name} - ${agency.area}`, value: String(agency.id) })),
     [agencies],
@@ -103,12 +114,21 @@ export default function TrackRecordsPage() {
     });
   }, []);
 
-  function openCreateTrackRecord() {
+  function openCreateTrackRecord(agencyId = agencies[0]?.id ?? 0) {
     setEditingRecord(null);
-    setForm({ ...initialForm, agencyId: agencies[0]?.id ?? 0 });
+    setForm({ ...initialForm, agencyId });
     setSubmitError(null);
     setCreateOpen(true);
   }
+
+  useEffect(() => {
+    if (!shouldOpenCreate || agencies.length === 0) {
+      return;
+    }
+
+    const selectedAgency = agencies.find((agency) => agency.id === agencyIdFromUrl);
+    openCreateTrackRecord(selectedAgency?.id ?? agencies[0].id);
+  }, [agencies, agencyIdFromUrl, shouldOpenCreate]);
 
   function openEditTrackRecord(record: TrackRecord) {
     setEditingRecord(record);
@@ -177,38 +197,39 @@ export default function TrackRecordsPage() {
       <div className="mx-auto max-w-[1200px]">
         <section className="mb-14 flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <h2 className="font-display text-[58px] font-bold leading-none text-text-strong">Track Records</h2>
+            <h2 className="font-display text-[58px] font-bold leading-none text-text-strong">Theo dõi Track Record</h2>
             <p className="mt-6 text-[21px] text-text-muted">Theo dõi khách hàng, doanh thu dự kiến và kết quả bán hàng.</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
+            <ThemeToggle />
             <button
               className="inline-flex h-12 items-center gap-3 rounded border border-surface-line bg-surface px-6 font-mono text-sm uppercase tracking-[0.16em] text-text-strong transition hover:border-accent-mint"
               type="button"
             >
               <Download className="h-5 w-5" />
-              Export
+              Xuất
             </button>
             <button
               className="inline-flex h-12 items-center gap-3 rounded border border-accent-mint bg-surface px-6 font-mono text-sm uppercase tracking-[0.16em] text-text-strong transition hover:bg-accent-mint hover:text-background"
-              onClick={openCreateTrackRecord}
+              onClick={() => openCreateTrackRecord()}
               type="button"
             >
               <Plus className="h-5 w-5" />
-              Quick Add Lead
+              Tạo Track Record
             </button>
           </div>
         </section>
 
         <section className="mb-14 grid gap-8 xl:grid-cols-[1fr_380px]">
-          <div className="rounded-lg border-t-[3px] border-t-accent-mint bg-surface-card p-8 shadow-[0_28px_80px_rgba(0,0,0,0.18)]">
-            <p className="font-mono text-base tracking-[0.14em] text-text-muted">Total Pipeline Value</p>
+          <div className="rounded-lg border-t-[3px] border-t-accent-mint bg-surface-card p-8 shadow-panel">
+            <p className="font-mono text-base tracking-[0.14em] text-text-muted">Tổng giá trị Pipeline</p>
             <div className="mt-4 flex flex-wrap items-baseline gap-4">
               <span className="font-display text-[62px] font-bold leading-none text-text-strong">
                 {formatCompactCurrency(dashboard?.totalExpectedRevenue ?? 0)}
               </span>
               <span className="inline-flex items-center gap-2 font-mono text-base text-accent-mint">
                 <TrendingUp className="h-4 w-4" />
-                {closedPercent}% closed
+                {closedPercent}% đã chốt
               </span>
             </div>
 
@@ -219,16 +240,16 @@ export default function TrackRecordsPage() {
             </div>
 
             <div className="mt-5 flex flex-wrap justify-between gap-4">
-              <PipelineLegend color="bg-accent-mint" label={<>Closed ({closed})</>} />
-              <PipelineLegend color="bg-accent-amber" label={<>Contacted/Potential ({negotiation})</>} />
-              <PipelineLegend color="bg-accent-ice" label={<>New/Lost ({lead})</>} />
+              <PipelineLegend color="bg-accent-mint" label={<>Đã chốt ({closed})</>} />
+              <PipelineLegend color="bg-accent-amber" label={<>Đã liên hệ/Tiềm năng ({negotiation})</>} />
+              <PipelineLegend color="bg-accent-ice" label={<>Mới/Thất bại ({lead})</>} />
             </div>
           </div>
 
           <div className="flex min-h-[230px] flex-col justify-center rounded-lg border-t-[3px] border-t-accent-amber bg-surface-card p-8 text-center">
-            <p className="text-left font-mono text-base tracking-[0.14em] text-text-muted">Active Deals</p>
+            <p className="text-left font-mono text-base tracking-[0.14em] text-text-muted">Deal đang xử lý</p>
             <p className="mt-8 font-display text-[62px] font-bold leading-none text-text-strong">{activeDeals}</p>
-            <p className="mt-5 font-mono text-base tracking-[0.08em] text-text-muted">Across Vietnam Agencies</p>
+            <p className="mt-5 font-mono text-base tracking-[0.08em] text-text-muted">Trên hệ thống đại lý Việt Nam</p>
           </div>
         </section>
 
@@ -242,7 +263,7 @@ export default function TrackRecordsPage() {
                   setSearch(event.target.value);
                   setPage(1);
                 }}
-                placeholder="Search records..."
+                placeholder="Tìm khách hàng, đại lý..."
                 type="search"
                 value={search}
               />
@@ -252,7 +273,7 @@ export default function TrackRecordsPage() {
               type="button"
             >
               <Filter className="h-4 w-4" />
-              Filter
+              Lọc
             </button>
           </div>
 
@@ -260,19 +281,19 @@ export default function TrackRecordsPage() {
             <table className="min-w-[960px] w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-surface-line">
-                  <th className="px-6 py-5 font-mono text-sm tracking-[0.06em] text-text-strong">Record ID</th>
-                  <th className="px-6 py-5 font-mono text-sm tracking-[0.06em] text-text-strong">Customer / Agency</th>
-                  <th className="px-6 py-5 font-mono text-sm tracking-[0.06em] text-text-strong">Value</th>
-                  <th className="px-6 py-5 font-mono text-sm tracking-[0.06em] text-text-strong">Status</th>
+                  <th className="px-6 py-5 font-mono text-sm tracking-[0.06em] text-text-strong">Mã Record</th>
+                  <th className="px-6 py-5 font-mono text-sm tracking-[0.06em] text-text-strong">Khách hàng / Đại lý</th>
+                  <th className="px-6 py-5 font-mono text-sm tracking-[0.06em] text-text-strong">Giá trị</th>
+                  <th className="px-6 py-5 font-mono text-sm tracking-[0.06em] text-text-strong">Trạng thái</th>
                   <th className="px-6 py-5 font-mono text-sm tracking-[0.06em] text-text-strong">Sale</th>
-                  <th className="px-6 py-5 text-right font-mono text-sm tracking-[0.06em] text-text-strong">Actions</th>
+                  <th className="px-6 py-5 text-right font-mono text-sm tracking-[0.06em] text-text-strong">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
                     <td className="px-6 py-10 text-text-muted" colSpan={6}>
-                      Loading track records...
+                      Đang tải Track Record...
                     </td>
                   </tr>
                 ) : null}
@@ -280,6 +301,13 @@ export default function TrackRecordsPage() {
                   <tr>
                     <td className="px-6 py-10 text-danger-soft" colSpan={6}>
                       {error}
+                    </td>
+                  </tr>
+                ) : null}
+                {!loading && !error && trackRecords.length === 0 ? (
+                  <tr>
+                    <td className="px-6 py-10 text-text-muted" colSpan={6}>
+                      Chưa có Track Record phù hợp.
                     </td>
                   </tr>
                 ) : null}
@@ -301,8 +329,8 @@ export default function TrackRecordsPage() {
                         </td>
                         <td className="px-6 py-5 text-right">
                           <ActionButtons
-                            deleteLabel={`Delete ${record.customerName}`}
-                            editLabel={`Edit ${record.customerName}`}
+                            deleteLabel={`Xóa ${record.customerName}`}
+                            editLabel={`Chỉnh sửa ${record.customerName}`}
                             onDelete={() => setDeletingRecord(record)}
                             onEdit={() => openEditTrackRecord(record)}
                           />
@@ -324,7 +352,7 @@ export default function TrackRecordsPage() {
           setEditingRecord(null);
         }}
         open={createOpen}
-        title={editingRecord ? 'Sửa track record' : 'Tạo track record mới'}
+        title={editingRecord ? 'Sửa Track Record' : 'Tạo Track Record mới'}
       >
         <form className="space-y-4" onSubmit={handleSubmitTrackRecord}>
           <Input
@@ -373,7 +401,7 @@ export default function TrackRecordsPage() {
               Hủy
             </Button>
             <Button disabled={submitting} type="submit">
-              {submitting ? 'Đang lưu...' : editingRecord ? 'Lưu thay đổi' : 'Tạo track'}
+              {submitting ? 'Đang lưu...' : editingRecord ? 'Lưu thay đổi' : 'Tạo Track Record'}
             </Button>
           </div>
         </form>

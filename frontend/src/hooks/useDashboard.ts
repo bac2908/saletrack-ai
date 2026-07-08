@@ -13,7 +13,7 @@ export function useDashboard() {
       setError(null);
       setDashboard(await dashboardService.getStats());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load dashboard');
+      setError(err instanceof Error ? err.message : 'Không tải được dữ liệu Dashboard');
     } finally {
       setLoading(false);
     }

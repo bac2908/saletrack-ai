@@ -78,10 +78,10 @@ export default function Dashboard() {
         <section className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
             <h2 className="font-display text-[58px] font-bold leading-none tracking-normal text-text-strong">
-              Dashboard Overview
+              Tổng quan Dashboard
             </h2>
             <p className="mt-6 text-[21px] leading-8 text-text-muted">
-              Real-time overview for Vietnamese sales, agencies, and track records.
+              Theo dõi thời gian thực đội ngũ Sale, đại lý và Track Record tại Việt Nam.
             </p>
           </div>
           <button
@@ -89,7 +89,7 @@ export default function Dashboard() {
             type="button"
           >
             <Download className="h-5 w-5" />
-            Export Report
+            Xuất báo cáo
           </button>
         </section>
 
@@ -97,22 +97,22 @@ export default function Dashboard() {
           <MetricCard
             accent="border-t-2 border-t-accent-mint"
             icon={<TrendingUp className="h-8 w-8" />}
-            label="Active Sales Volume"
-            trend={loading ? 'Loading' : 'Vietnam'}
+            label="Sale đang hoạt động"
+            trend={loading ? 'Đang tải' : 'Việt Nam'}
             value={String(dashboard?.activeSalesCount ?? 0)}
           />
           <MetricCard
             accent="border-t-2 border-t-accent-ice"
             icon={<Building2 className="h-8 w-8 text-accent-ice" />}
-            label="Total Agencies Deployed"
-            trend="Nationwide"
+            label="Tổng số đại lý"
+            trend="Toàn quốc"
             trendColor="text-text-muted"
             value={String(dashboard?.totalAgencies ?? 0)}
           />
           <MetricCard
             accent="border-t-2 border-t-accent-amber"
             icon={<Database className="h-8 w-8 text-accent-amber" />}
-            label="Total Track Records"
+            label="Tổng Track Record"
             trend={formatCompactCurrency(dashboard?.totalExpectedRevenue ?? 0)}
             trendColor="text-accent-amber"
             value={String(totalTrackRecords)}
@@ -123,27 +123,27 @@ export default function Dashboard() {
           <div className="lg:col-span-8">
             <section className="min-h-[720px] rounded-lg border border-surface-line bg-surface p-8">
               <div className="mb-12 flex items-center justify-between border-b border-surface-line pb-6">
-                <h3 className="font-display text-3xl font-semibold text-text-strong">Pipeline Velocity & Status</h3>
+                <h3 className="font-display text-3xl font-semibold text-text-strong">Tốc độ Pipeline & Trạng thái</h3>
                 <MoreHorizontal className="h-6 w-6 text-text-muted" />
               </div>
               {error ? <p className="mb-6 text-danger-soft">{error}</p> : null}
               <div className="space-y-10">
                 <PipelineRow
                   color="text-accent-mint"
-                  label="Closed Records"
-                  value={`${closedPercent}% (${closed} records)`}
+                  label="Đã chốt"
+                  value={`${closedPercent}% (${closed} bản ghi)`}
                   width={`${closedPercent}%`}
                 />
                 <PipelineRow
                   color="text-accent-ice"
-                  label="Active Pipeline"
-                  value={`${pipelinePercent}% (${openPipeline} records)`}
+                  label="Pipeline đang xử lý"
+                  value={`${pipelinePercent}% (${openPipeline} bản ghi)`}
                   width={`${pipelinePercent}%`}
                 />
                 <PipelineRow
                   color="text-accent-amber"
-                  label="Lost / Flagged"
-                  value={`${lostPercent}% (${lost} records)`}
+                  label="Thất bại / Cần chú ý"
+                  value={`${lostPercent}% (${lost} bản ghi)`}
                   width={`${lostPercent}%`}
                 />
               </div>
@@ -151,7 +151,7 @@ export default function Dashboard() {
               <div className="relative mt-10 flex h-40 items-center justify-center overflow-hidden rounded border border-dashed border-surface-line bg-surface-card/30">
                 <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent" />
                 <span className="relative font-mono text-sm tracking-[0.14em] text-text-muted">
-                  [Vietnam Sales Data Stream - SQLite / Prisma Active]
+                  [Luồng dữ liệu Sale Việt Nam - SQLite / Prisma đang hoạt động]
                 </span>
               </div>
             </section>
@@ -161,7 +161,7 @@ export default function Dashboard() {
             <section className="min-h-[720px] rounded-lg border border-surface-line bg-surface-card p-8">
               <h3 className="flex items-center gap-3 font-display text-3xl font-semibold text-text-strong">
                 <BrainCircuit className="h-6 w-6 text-accent-mint" />
-                Executive Summary
+                Tóm tắt điều hành
               </h3>
               <div className="mt-10 space-y-8 text-lg leading-8 text-text-muted">
                 <p>
@@ -181,12 +181,12 @@ export default function Dashboard() {
               </div>
 
               <div className="mt-10 rounded border border-surface-line bg-surface p-5">
-                <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-strong">Recommended Action</p>
+                <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-strong">Hành động đề xuất</p>
                 <p className="mt-4 text-base leading-7 text-text-muted">
-                  Ưu tiên gọi lại các track record trạng thái Contacted/Potential để tăng tỷ lệ chốt trong kỳ demo.
+                  Ưu tiên gọi lại các track record trạng thái Đã liên hệ/Tiềm năng để tăng tỷ lệ chốt trong kỳ demo.
                 </p>
                 <button className="mt-6 inline-flex items-center gap-2 font-mono text-sm uppercase tracking-[0.18em] text-accent-mint">
-                  Execute Directive
+                  Thực hiện
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>

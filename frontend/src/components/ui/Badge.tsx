@@ -8,10 +8,10 @@ interface BadgeProps {
 }
 
 const tones: Record<BadgeTone, string> = {
-  default: 'bg-slate-100 text-slate-700',
-  success: 'bg-emerald-50 text-emerald-700',
-  warning: 'bg-amber-50 text-amber-700',
-  danger: 'bg-rose-50 text-rose-700',
+  default: 'border border-surface-line bg-surface-card-high text-text-muted',
+  success: 'border border-accent-mint/40 bg-accent-mint/10 text-accent-mint',
+  warning: 'border border-accent-amber/40 bg-accent-amber/10 text-accent-amber',
+  danger: 'border border-danger-soft/40 bg-danger-soft/10 text-danger-soft',
 };
 
 export default function Badge({ children, tone = 'default' }: BadgeProps) {

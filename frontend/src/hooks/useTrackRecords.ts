@@ -26,7 +26,7 @@ export function useTrackRecords(params: ListParams = {}) {
       setTrackRecords(result.items);
       setPagination(result.pagination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load track records');
+      setError(err instanceof Error ? err.message : 'Không tải được danh sách Track Record');
     } finally {
       setLoading(false);
     }

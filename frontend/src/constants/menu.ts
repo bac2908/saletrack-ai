@@ -8,17 +8,17 @@ export const MENU_ITEMS = [
     icon: LayoutDashboard,
   },
   {
-    label: 'Sales Team',
+    label: 'Đội ngũ Sale',
     path: ROUTES.SALES,
     icon: BarChart3,
   },
   {
-    label: 'Agencies',
+    label: 'Đại lý',
     path: ROUTES.AGENCIES,
     icon: Building2,
   },
   {
-    label: 'Track Records',
+    label: 'Track Record',
     path: ROUTES.TRACK_RECORDS,
     icon: ListChecks,
   },

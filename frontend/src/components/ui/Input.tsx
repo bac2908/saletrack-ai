@@ -13,7 +13,7 @@ export default function Input({ className = '', error, label, ...props }: InputP
         className={`h-10 w-full rounded-md border border-surface-line bg-background px-3 text-sm text-text-strong outline-none placeholder:text-text-muted focus:border-accent-mint ${className}`}
         {...props}
       />
-      {error ? <span className="mt-1 block text-xs text-rose-600">{error}</span> : null}
+      {error ? <span className="mt-1 block text-xs text-danger-soft">{error}</span> : null}
     </label>
   );
 }

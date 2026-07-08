@@ -3,14 +3,14 @@ import PageContainer from '../components/layout/PageContainer';
 
 export default function NotFound() {
   return (
-    <PageContainer title="Page not found">
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
-        <p className="mb-4 text-sm text-slate-500">The page you requested does not exist.</p>
+    <PageContainer title="Không tìm thấy trang">
+      <div className="rounded-lg border border-surface-line bg-surface-card p-6">
+        <p className="mb-4 text-sm text-text-muted">Trang bạn yêu cầu không tồn tại.</p>
         <Link
-          className="inline-flex h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          className="inline-flex h-10 items-center justify-center rounded-md border border-surface-line bg-surface px-4 text-sm font-medium text-text-strong transition hover:border-accent-mint"
           to="/"
         >
-          Back to dashboard
+          Quay lại Dashboard
         </Link>
       </div>
     </PageContainer>

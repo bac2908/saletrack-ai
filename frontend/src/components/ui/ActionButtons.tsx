@@ -8,8 +8,8 @@ interface ActionButtonsProps {
 }
 
 export default function ActionButtons({
-  deleteLabel = 'Delete',
-  editLabel = 'Edit',
+  deleteLabel = 'Xóa',
+  editLabel = 'Chỉnh sửa',
   onDelete,
   onEdit,
 }: ActionButtonsProps) {

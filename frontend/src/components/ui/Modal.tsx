@@ -22,7 +22,7 @@ export default function Modal({ children, onClose, open, title }: ModalProps) {
             className="inline-flex h-9 w-9 items-center justify-center rounded-md text-text-muted hover:bg-surface-card-high hover:text-text-strong"
             onClick={onClose}
             type="button"
-            title="Close"
+            title="Đóng"
           >
             <X className="h-4 w-4" />
           </button>

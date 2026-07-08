@@ -26,7 +26,7 @@ export function useSales(params: ListParams = {}) {
       setSales(result.items);
       setPagination(result.pagination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load sales');
+      setError(err instanceof Error ? err.message : 'Không tải được danh sách Sale');
     } finally {
       setLoading(false);
     }

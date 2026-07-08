@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import ActionButtons from '../components/ui/ActionButtons';
 import Button from '../components/ui/Button';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -22,6 +23,7 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import PaginationControls from '../components/ui/PaginationControls';
 import Select from '../components/ui/Select';
+import ThemeToggle from '../components/ui/ThemeToggle';
 import { useAgencies } from '../hooks/useAgencies';
 import { useDashboard } from '../hooks/useDashboard';
 import { agenciesService, type AgencyPayload } from '../services/agenciesService';
@@ -38,19 +40,9 @@ const initialForm: AgencyPayload = {
   saleId: 0,
 };
 
-function StatusBadge({ active = true }: { active?: boolean }) {
-  const classes = active
-    ? 'border-accent-mint/30 bg-accent-mint/10 text-accent-mint'
-    : 'border-danger-soft/30 bg-danger-soft/10 text-danger-soft';
-
-  return (
-    <span className={`inline-flex rounded px-3 py-2 font-mono text-xs uppercase tracking-[0.16em] ${classes}`}>
-      {active ? 'Active' : 'Inactive'}
-    </span>
-  );
-}
-
 export default function AgenciesPage() {
+  const [searchParams] = useSearchParams();
+  const searchFromUrl = searchParams.get('search') ?? '';
   const [createOpen, setCreateOpen] = useState(false);
   const [coverageCount, setCoverageCount] = useState(0);
   const [deleting, setDeleting] = useState(false);
@@ -59,7 +51,7 @@ export default function AgenciesPage() {
   const [form, setForm] = useState<AgencyPayload>(initialForm);
   const [page, setPage] = useState(1);
   const [sales, setSales] = useState<Sale[]>([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchFromUrl);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { dashboard, refetch: refetchDashboard } = useDashboard();
@@ -68,6 +60,11 @@ export default function AgenciesPage() {
   const closedCount = dashboard?.trackRecordsByStatus.CLOSED ?? 0;
   const performanceScore =
     dashboard && dashboard.totalTrackRecords > 0 ? ((closedCount / dashboard.totalTrackRecords) * 100).toFixed(1) : '0.0';
+
+  useEffect(() => {
+    setSearch(searchFromUrl);
+    setPage(1);
+  }, [searchFromUrl]);
 
   useEffect(() => {
     salesService.getAll({ limit: 100 }).then((result) => {
@@ -150,7 +147,7 @@ export default function AgenciesPage() {
     <main className="min-h-screen overflow-y-auto bg-background px-10 py-6">
       <section className="mb-9 flex items-start justify-between gap-8">
         <div>
-          <h2 className="font-display text-[38px] font-bold leading-none text-text-strong">Agencies Management</h2>
+          <h2 className="font-display text-[38px] font-bold leading-none text-text-strong">Quản lý đại lý</h2>
           <p className="mt-4 text-lg text-text-muted">Mạng lưới đại lý tại Việt Nam</p>
         </div>
         <div className="flex items-center gap-8">
@@ -162,7 +159,7 @@ export default function AgenciesPage() {
                 setSearch(event.target.value);
                 setPage(1);
               }}
-              placeholder="Search agencies, areas, or sale..."
+              placeholder="Tìm đại lý, khu vực hoặc Sale..."
               type="search"
               value={search}
             />
@@ -170,7 +167,11 @@ export default function AgenciesPage() {
               Ctrl+K
             </span>
           </div>
-          <button className="relative flex h-12 w-12 items-center justify-center border border-surface-line bg-surface-card text-text-muted">
+          <ThemeToggle />
+          <button
+            className="relative flex h-12 w-12 items-center justify-center border border-surface-line bg-surface-card text-text-muted"
+            type="button"
+          >
             <Bell className="h-6 w-6" />
             <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-accent-mint" />
           </button>
@@ -183,7 +184,7 @@ export default function AgenciesPage() {
       <section className="mb-12 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
         <div className="relative h-[170px] overflow-hidden rounded-lg border border-accent-mint bg-surface-card p-8">
           <Building2 className="absolute right-8 top-11 h-14 w-14 text-accent-mint opacity-10" />
-          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Total Agencies</p>
+          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Tổng đại lý</p>
           <div className="mt-7 flex items-baseline gap-3">
             <span className="font-display text-[56px] font-bold leading-none text-text-strong">
               {dashboard?.totalAgencies ?? pagination.total}
@@ -193,15 +194,15 @@ export default function AgenciesPage() {
         </div>
         <div className="relative h-[170px] overflow-hidden rounded-lg border border-accent-amber bg-surface-card p-8">
           <Globe2 className="absolute right-8 top-9 h-16 w-16 text-accent-amber opacity-10" />
-          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Vietnam Coverage</p>
+          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Độ phủ Việt Nam</p>
           <div className="mt-7 flex items-baseline gap-4">
             <span className="font-display text-[56px] font-bold leading-none text-text-strong">{coverageCount || 21}</span>
-            <span className="font-mono text-sm text-text-muted">Areas</span>
+            <span className="font-mono text-sm text-text-muted">khu vực</span>
           </div>
         </div>
         <div className="relative h-[170px] overflow-hidden rounded-lg border border-surface-line bg-surface-card p-8">
           <TrendingUp className="absolute right-8 top-10 h-16 w-16 text-text-muted opacity-10" />
-          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Closed Ratio</p>
+          <p className="font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Tỷ lệ chốt</p>
           <div className="mt-7 flex items-baseline gap-4">
             <span className="font-display text-[56px] font-bold leading-none text-text-strong">{performanceScore}</span>
             <span className="font-mono text-sm text-text-muted">%</span>
@@ -215,26 +216,26 @@ export default function AgenciesPage() {
           <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-card-high text-text-strong">
             <Plus className="h-8 w-8" />
           </span>
-          <span className="mt-5 font-mono text-sm uppercase tracking-[0.18em] text-text-strong">Onboard New Agency</span>
+          <span className="mt-5 font-mono text-sm uppercase tracking-[0.18em] text-text-strong">Thêm đại lý mới</span>
         </button>
       </section>
 
       <section className="grid gap-8 xl:grid-cols-12">
         <div className="overflow-hidden rounded-lg border border-surface-line bg-surface-card xl:col-span-8">
           <div className="flex items-center justify-between border-b border-surface-line p-8">
-            <h3 className="font-display text-3xl font-semibold text-text-strong">Agency Directory</h3>
+            <h3 className="font-display text-3xl font-semibold text-text-strong">Danh sách đại lý</h3>
             <div className="flex items-center gap-3">
               <button className="inline-flex h-10 items-center gap-3 border border-surface-line px-4 font-mono text-sm text-text-muted">
                 <Filter className="h-4 w-4" />
-                Filter
+                Lọc
               </button>
               <button className="inline-flex h-10 items-center gap-3 border border-surface-line px-4 font-mono text-sm text-text-muted">
                 <SortAsc className="h-4 w-4" />
-                Sort
+                Sắp xếp
               </button>
               <button className="inline-flex h-10 items-center gap-3 border border-surface-line px-4 font-mono text-sm text-text-muted">
                 <Download className="h-4 w-4" />
-                Export
+                Xuất
               </button>
             </div>
           </div>
@@ -243,12 +244,12 @@ export default function AgenciesPage() {
             <table className="min-w-[780px] w-full border-collapse text-left">
               <thead className="bg-surface-card-high">
                 <tr className="border-b border-surface-line">
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Agency Name</th>
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Area</th>
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Assigned Sale</th>
-                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Tracks</th>
-                  <th className="w-24 px-4 py-5 text-right font-mono text-xs uppercase tracking-[0.12em] text-text-muted">
-                    Actions
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Tên đại lý</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Khu vực</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Sale phụ trách</th>
+                  <th className="px-8 py-5 font-mono text-sm uppercase tracking-[0.18em] text-text-muted">Track</th>
+                  <th className="w-28 px-4 py-5 text-right font-mono text-xs uppercase tracking-[0.12em] text-text-muted">
+                    Thao tác
                   </th>
                 </tr>
               </thead>
@@ -256,7 +257,7 @@ export default function AgenciesPage() {
                 {loading ? (
                   <tr>
                     <td className="px-8 py-10 text-text-muted" colSpan={5}>
-                      Loading agencies...
+                      Đang tải danh sách đại lý...
                     </td>
                   </tr>
                 ) : null}
@@ -299,15 +300,21 @@ export default function AgenciesPage() {
                           </div>
                         </td>
                         <td className="px-8 py-6">
-                          <div className="flex items-center gap-3">
-                            <StatusBadge />
-                            <span className="font-mono text-sm text-text-muted">{agency._count?.trackRecords ?? 0}</span>
+                          <div className="flex flex-col items-start gap-2">
+                            <span className="font-mono text-lg text-text-strong">{agency._count?.trackRecords ?? 0}</span>
+                            <Link
+                              className="inline-flex h-8 items-center gap-2 rounded border border-accent-mint px-3 font-mono text-[11px] uppercase tracking-[0.1em] text-accent-mint transition hover:bg-accent-mint hover:text-background"
+                              to={`/track-records?create=1&agencyId=${agency.id}`}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Tạo Track
+                            </Link>
                           </div>
                         </td>
                         <td className="px-4 py-6 text-right">
                           <ActionButtons
-                            deleteLabel={`Delete ${agency.name}`}
-                            editLabel={`Edit ${agency.name}`}
+                            deleteLabel={`Xóa ${agency.name}`}
+                            editLabel={`Chỉnh sửa ${agency.name}`}
                             onDelete={() => setDeletingAgency(agency)}
                             onEdit={() => openEditAgency(agency)}
                           />
@@ -324,7 +331,7 @@ export default function AgenciesPage() {
 
         <aside className="flex flex-col gap-8 xl:col-span-4">
           <section className="rounded-lg border border-surface-line bg-surface-card p-8">
-            <h3 className="font-display text-2xl font-semibold text-text-strong">Vietnam Distribution</h3>
+            <h3 className="font-display text-2xl font-semibold text-text-strong">Phân bố tại Việt Nam</h3>
             <div className="mt-6 rounded border border-surface-line bg-background/50 p-6">
               <div className="grid grid-cols-2 gap-3 font-mono text-sm text-text-muted">
                 {['TP.HCM', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng', 'Đồng Nai', 'Bình Dương', 'Khánh Hòa'].map(
@@ -340,27 +347,27 @@ export default function AgenciesPage() {
 
           <section className="rounded-lg border border-surface-line bg-surface-card p-8">
             <div className="mb-6 flex items-center justify-between">
-              <h3 className="font-display text-2xl font-semibold text-text-strong">Recent Activity</h3>
-              <button className="font-mono text-xs uppercase tracking-[0.18em] text-accent-mint">View All</button>
+              <h3 className="font-display text-2xl font-semibold text-text-strong">Hoạt động gần đây</h3>
+              <button className="font-mono text-xs uppercase tracking-[0.18em] text-accent-mint">Xem tất cả</button>
             </div>
             <div className="space-y-8">
               <ActivityItem
                 icon={<Check className="h-4 w-4" />}
                 tone="mint"
                 text={<><strong>{agencies[0]?.name ?? 'Đại lý mới'}</strong> đã được cập nhật dữ liệu.</>}
-                time="2 hours ago - by System"
+                time="2 giờ trước - bởi Hệ thống"
               />
               <ActivityItem
                 icon={<TriangleAlert className="h-4 w-4" />}
                 tone="amber"
-                text={<>Cần rà soát các track record trạng thái <strong>Lost</strong>.</>}
-                time="5 hours ago - Automated"
+                text={<>Cần rà soát các track record trạng thái <strong>Thất bại</strong>.</>}
+                time="5 giờ trước - Tự động"
               />
               <ActivityItem
                 icon={<UserPlus className="h-4 w-4" />}
                 tone="muted"
                 text={<>Thêm mới dữ liệu đại lý Việt Nam để demo phân trang.</>}
-                time="Today - by SaleTrack AI"
+                time="Hôm nay - bởi SaleTrack AI"
               />
             </div>
           </section>

@@ -11,7 +11,7 @@ const variants: Record<ButtonVariant, string> = {
   primary: 'border border-accent-mint bg-accent-mint text-background hover:bg-accent-mint/90',
   secondary: 'border border-surface-line bg-surface text-text-strong hover:border-accent-mint',
   ghost: 'text-text-muted hover:bg-surface-card-high hover:text-text-strong',
-  danger: 'bg-rose-600 text-white hover:bg-rose-700',
+  danger: 'border border-danger-soft bg-danger-soft text-background hover:bg-danger-soft/90',
 };
 
 export default function Button({ children, className = '', variant = 'primary', ...props }: ButtonProps) {

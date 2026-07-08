@@ -26,7 +26,7 @@ export function useAgencies(params: ListParams = {}) {
       setAgencies(result.items);
       setPagination(result.pagination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load agencies');
+      setError(err instanceof Error ? err.message : 'Không tải được danh sách đại lý');
     } finally {
       setLoading(false);
     }

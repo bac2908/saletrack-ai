@@ -1,112 +1,141 @@
 # SaleTrack AI
 
-SaleTrack AI is a demo sales management app for the flow:
+SaleTrack AI is a demo sales-management application implementing the flow:
 
-```text
-Sale -> Agency -> TrackRecord -> Dashboard stats
-```
+Sale → Agency → TrackRecord → Dashboard
 
-## Stack
+This repository contains a monorepo with a `frontend` (React + Vite) and `backend` (Node.js + Express + TypeScript) connected by a Prisma + SQLite database.
+
+## Core Workflow
+
+Sale → Agency → TrackRecord → Dashboard
+
+
+## Data Relationships
+
+- One Sale can manage many Agencies.
+- One Agency can have many Track Records.
+- Agency is linked to Sale by saleId.
+- TrackRecord is linked to Agency by agencyId.
+
+---
+
+## Tech stack
 
 - Frontend: React, TypeScript, Vite, Tailwind CSS
 - Backend: Node.js, Express, TypeScript
-- Database: SQLite
-- ORM: Prisma
+- Database: SQLite (Prisma ORM)
 
-## Setup
+---
 
-Install dependencies from the project root:
+## Quickstart (development)
+
+Prerequisites: Node.js (>=18 recommended), npm.
+
+1. Install dependencies (root):
 
 ```bash
 npm install
 ```
 
-Prepare backend database:
+2. Prepare the backend database and seed demo data:
 
 ```bash
 cd backend
 npx prisma generate
 npx prisma migrate dev --name init
 npm run prisma:seed
+cd ..
 ```
 
-Run backend:
+3. Run both frontend and backend in development (from repo root):
 
 ```bash
-cd backend
 npm run dev
 ```
 
-Run frontend:
+- Frontend: http://127.0.0.1:5173
+- Backend API base: http://localhost:5000/api
+
+Notes:
+- Environment samples: `backend/.env.example`, `frontend/.env.example`.
+
+---
+
+## Build & Production (basic)
+
+1. Build frontend:
 
 ```bash
 cd frontend
-npm run dev
+npm run build
 ```
 
-Default URLs:
+2. Build backend and run:
 
-- Frontend: `http://127.0.0.1:5173`
-- Backend API: `http://localhost:5000/api`
-
-## Demo Data
-
-The seed file creates Vietnamese demo data:
-
-- 12 sales
-- 42 agencies across Vietnamese areas
-- 210 track records with mixed statuses
-
-This makes pagination visible on Sales, Agencies, and Track Records pages.
-
-## Main Demo Flow
-
-1. Open Dashboard to view stats.
-2. Open Sales Team and create a new sale.
-3. Open Agencies and create a new agency assigned to a sale.
-4. Open Track Records and create a new record assigned to an agency.
-5. Return to Dashboard to see updated totals.
-6. Use the edit/delete icon buttons in each table to test CRUD.
-7. Use the Light Mode / Dark Mode control in the sidebar or dashboard header to switch theme.
-
-## API Notes
-
-List APIs support pagination and search:
-
-```text
-GET /api/sales?page=1&limit=8&search=Nguyễn
-GET /api/agencies?page=1&limit=8&search=Hà Nội
-GET /api/track-records?page=1&limit=10&search=Công ty
+```bash
+cd backend
+npm run build
+npm start
 ```
 
-CRUD APIs:
+Adjust hosting for frontend preview as needed (Vite preview or static server).
 
-```text
-GET /api/sales/:id
-PUT /api/sales/:id
-DELETE /api/sales/:id
+---
 
-GET /api/agencies/:id
-PUT /api/agencies/:id
-DELETE /api/agencies/:id
+## Project scripts
 
-GET /api/track-records/:id
-PUT /api/track-records/:id
-DELETE /api/track-records/:id
-```
+- `npm run dev` (root): run frontend & backend concurrently for development.
+- `cd backend && npm run dev`: run TypeScript Express server with `ts-node-dev`.
+- `cd frontend && npm run dev`: run Vite dev server.
+- `cd backend && npm run prisma:seed`: populate demo Vietnamese data.
 
-## Completed
+---
 
-- Prisma schema for Sale, Agency, TrackRecord
-- SQLite database and Vietnamese seed data
-- Express API with validation and centralized error handling
-- Dashboard stats endpoint
-- React executive-style UI for 4 pages
-- API-backed lists with pagination
-- CRUD flow for Sale, Agency, TrackRecord
-- Light/dark theme toggle
+## Screenshots
 
-## Not Included
+The `screenshots/` folder should contain these images for submission:
 
-- Authentication, login, roles
-- Advanced reporting/export
+- `dashboard.png`
+- `sales-page.png`
+- `agencies-page.png`
+- `track-records-page.png`
+
+I provide a small Playwright script in `AI_USAGE.md` to automate screenshot capture. If you need to regenerate screenshots locally, follow the instructions in `AI_USAGE.md` and ensure the dev servers are running.
+
+---
+
+## What I implemented (summary)
+
+- Data models: `Sale`, `Agency`, `TrackRecord` (Prisma schema).
+- Seed: Vietnamese demo data (Sales, Agencies, TrackRecords) for pagination and dashboard metrics.
+- Backend: REST API with list/search/pagination endpoints and CRUD for all entities; centralized error handling and basic validation.
+- Frontend: React pages for Dashboard, Sales, Agencies, Track Records; components, hooks, and services connecting to the API.
+- UX: Vietnamese localization of user-facing text (keeping technical terms where appropriate) and a working "Tìm nhanh" (Dashboard quick-search) that queries the API and deep-links to list pages with `?search=`.
+
+---
+
+## Not implemented / Future work
+
+- Authentication / authorization (login, roles)
+- Automated tests & CI workflow (recommended: add ESLint, Vitest/Jest, and a GitHub Actions workflow)
+- Production hardening (process manager, environment-specific DB, secrets management)
+
+---
+
+## How AI was used
+
+I used a coding assistant to accelerate schema design, generate code snippets (API scaffolding, React components), plan UI localization, and prepare documentation. See `AI_USAGE.md` for a full record of prompts used, what the AI helped with, and any manual fixes applied.
+
+---
+
+## Contact / notes
+
+If you need me to (A) commit and open a PR with documentation changes, (B) run screenshot capture on this environment (requires running servers + Playwright), or (C) add lint/tests/CI — tell me which and I will proceed.
+
+---
+
+## Candidate notes for reviewers
+
+This submission implements the requested CRUD and Dashboard flows and includes UI localization and a working quick-search. The candidate should be prepared to explain the requirement analysis, data-model decisions, how AI was used (prompts and scope), bugs encountered and how they were fixed, and proposed improvements if more time is available. Full details and prompt history are recorded in `AI_USAGE.md`.
+
